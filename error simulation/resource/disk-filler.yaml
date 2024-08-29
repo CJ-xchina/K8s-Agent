@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-test-1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: disk-filler
+  template:
+    metadata:
+      labels:
+        app: disk-filler
+    spec:
+      containers:
+      - name: disk-filler-container
+        image: busybox
+        command: ["/bin/sh", "-c"]
+        args:
+        - "while true; do dd if=/dev/zero of=/data/fillfile bs=1M count=1024; sleep 1; done"
+        volumeMounts:
+        - mountPath: /data
+          name: disk-volume
+      volumes:
+      - name: disk-volume
+        emptyDir:
+          sizeLimit: "100Mi"  # 限制为 100MB
+      restartPolicy: Always

@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: private-registry
+  namespace: k8sgpt-test
+spec:
+  containers:
+  - name: nginx
+    image: registry.cn-beijing.aliyuncs.com/obser/loo-svc:latest

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: secret-error
+  namespace: k8sgpt-test
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    env:
+    - name: SECRET_VALUE
+      valueFrom:
+        secretKeyRef:
+          name: my-secret
+          key: missing-key # 指向 Secret 中不存在的键
