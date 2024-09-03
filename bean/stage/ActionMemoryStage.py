@@ -1,8 +1,10 @@
 import json
-from typing import List
-from langchain.memory import ConversationBufferMemory
 from abc import ABC, abstractmethod
+from typing import List
+
+from langchain.memory import ConversationBufferMemory
 from langchain_core.tools import BaseTool
+
 from bean.parser.BaseOutputParser import BaseOutputParser
 from bean.stage.ActionStage import ActionStage
 from bean.stage.stageType import StageType

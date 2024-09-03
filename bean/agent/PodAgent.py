@@ -1,3 +1,5 @@
+import asyncio
+
 import yaml
 from langchain.memory import ConversationBufferMemory
 from langchain_openai import ChatOpenAI
@@ -11,10 +13,8 @@ from bean.stage.ToolStage import ToolStage
 from tools.agentTool import generate_agent_tools
 from tools.graphTool import GraphTool
 from tools.k8s_tools import kubectl_describe, kubectl_pod_logs, kubectl_get_details
-from setting.prompt_Action import GRAPH_PROMPT, ACTION_PROMPT
-from setting.prompt_Thinking import THINKING_PROMPT, THINKING_FIXING
-from utils.tools import execute_action
-
+from setting.prompt_Thinking import *
+from setting.prompt_Action import *
 
 class Pod:
     def __init__(self, name: str, namespace: str):
@@ -149,7 +149,6 @@ class PodAgent(baseAgent):
         while True:
             for cur_stage in self.thinking_stages:
                 output = cur_stage._step(self.get_thinking_input())
-                print("ok")
 
 
 def main():

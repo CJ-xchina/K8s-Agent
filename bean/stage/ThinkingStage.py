@@ -7,12 +7,10 @@ from bean.stage.stageType import StageType
 class ThinkingStageMemoryStrategy(MemoryStrategy):
     def save_memory(self, memory: ConversationBufferMemory, input_str: str, output_str: str):
         # ThinkingStage 的策略可能不保存任何内容
-        print("ThinkingStage does not save memory.")
-
+        return {}
     def load_memory(self, memory: ConversationBufferMemory) -> dict:
         # 读取最近的一次 Memory 消息
         memory_data = memory.load_memory_variables({})
-        print(f"ThinkingStage Memory loaded: {memory_data}")
         return memory_data
 
 

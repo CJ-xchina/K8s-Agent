@@ -59,13 +59,11 @@ class Graph:
         while current_node_id:
             node = self.get_node(current_node_id)
             if not node:
-                print(f"未找到节点 {current_node_id}。")
                 break
 
             # 简单起见，遵循 'true' 转移
             next_node_id = node.transitions.get('true')
             if not next_node_id:
-                print(f"路径在节点 {current_node_id} 处结束。")
                 break
 
             current_node_id = next_node_id

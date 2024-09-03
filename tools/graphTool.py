@@ -42,14 +42,3 @@ class GraphTool(BaseTool):
     def _arun(self, node_id: str, condition: str):
         raise NotImplementedError("该工具不支持异步执行")
 
-
-if __name__ == "__main__":
-    # 假设已经从某个 JSON 文件或字符串加载了 LlmChatGraph 实例
-    graph = LlmChatGraph(json_source="../resources/pod_graph.json", start_node_id="1")
-
-    # 初始化 GraphTool
-    tool = GraphTool(graph=graph)
-
-    # 调用工具并获取节点详细信息
-    result = tool._run("false")
-    print(result)

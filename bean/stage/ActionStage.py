@@ -1,22 +1,18 @@
+import asyncio
 import json
-import statistics
-from typing import List, Tuple, Callable
+from collections import Counter
+from typing import List, Callable, Any
 
-from langchain.memory import ConversationBufferMemory
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import BaseMessage
 from langchain_core.prompts import PromptTemplate
+from langchain_core.tools import BaseTool
 from langchain_openai import ChatOpenAI
 
 from bean.parser.BaseOutputParser import BaseOutputParser
-from setting.prompt_Action import NAIVE_FIX, MAIN_PROMPT, CONCLUSION
 from bean.stage.BaseStage import BaseStage
-from langchain_core.tools import BaseTool
-from collections import Counter
-
-from bean.stage.stageType import StageType
-from utils.chat import chat_with_model_str, chat_with_model_template
-from utils.tools import extract_tool_signature, execute_action
+from setting.prompt_Action import NAIVE_FIX, MAIN_PROMPT, CONCLUSION
+from utils.chat import chat_with_model_str
+from utils.tools import extract_tool_signature, execute_action, validate_tool_input
 
 
 def get_conclusion_target_question() -> str:
@@ -227,8 +223,6 @@ class ActionStage(BaseStage):
                 valid_signatures.append(signature)
                 valid_outputs.append(output)
             except Exception as e:
-                # 解析失败时输出日志并跳过该输出
-                print(f"Failed to parse output: {output}. Error: {e}")
                 continue
 
         if not valid_signatures:
@@ -250,9 +244,6 @@ class ActionStage(BaseStage):
         # 获取中间位置的输出
         middle_index = len(matched_outputs) // 2
         selected_output = matched_outputs[middle_index]
-
-        print(
-            f"select_final_output: Selected output is '{selected_output}' based on its middle position in the sorted list of outputs.")
         return selected_output
 
     def _step(self, variables=None):
@@ -266,8 +257,6 @@ class ActionStage(BaseStage):
         # 调用父类的 _step 方法获取初步输出
         final_output = super()._step(variables)
 
-        print(f"Final output before tool parsing: {final_output}")
-
         # 解析生成的响应以确定是否需要调用工具
         action = self.tool_parser.parse(final_output)
 
@@ -278,7 +267,7 @@ class ActionStage(BaseStage):
         observation = execute_action(self.tools, action)
 
         # 总结观察的数据
-        observation = self.conclusion_observation(observation)
+        observation = asyncio.run(self.conclusion_observation(observation))
         return observation
 
     @staticmethod
@@ -293,7 +282,7 @@ class ActionStage(BaseStage):
                     pass
         return '\n'.join(lines)
 
-    def process_sct(self, outputs: list[str]) -> tuple[list[str | list[str | dict] | BaseMessage], int]:
+    async def process_sct(self, outputs: list[str]) -> tuple[list[str], int] | tuple[tuple[Any], int]:
         """
         修复生成的输出列表，解析每个输出并尝试修复无法解析的输出。
 
@@ -305,7 +294,7 @@ class ActionStage(BaseStage):
             int: 总尝试修复次数
         """
 
-        def try_fix_output(output: str) -> str:
+        async def try_fix_output(output: str) -> str:
             nonlocal remaining_fixes, total_attempt
             raw_action = output
             attempt = 0
@@ -314,7 +303,7 @@ class ActionStage(BaseStage):
                     # 尝试解析输出
                     parsed_result = self.tool_parser.parse(output)
                     # 尝试执行解析后得到的Action
-                    observation = execute_action(tools=self.tools, action=parsed_result)
+                    validate_tool_input(tools=self.tools, action=parsed_result)
                     break  # 修复成功，跳出循环
                 except Exception as e:
                     error_message = str(e)
@@ -331,36 +320,35 @@ class ActionStage(BaseStage):
                     )
                     fixing_prompt_str = fixing_prompt.format_prompt().text
                     # 使用 fixing_model 修复输出
-                    output = chat_with_model_str(self.fixing_model, fixing_prompt_str, return_str=True)
+                    output = await chat_with_model_str(self.fixing_model, fixing_prompt_str, return_str=True)
             return output
 
         if not self.enable_fixing:
             return outputs, 0
+
         repaired_outputs = []
         total_attempt = 0
         remaining_fixes = self.fixing_num * len(outputs)  # 总修复次数
 
         # 第一遍：每个输出都有机会修复fixing_num次
-        for output in outputs:
-            repaired_outputs.append(try_fix_output(output))
+        tasks = [try_fix_output(output) for output in outputs]
+        repaired_outputs = await asyncio.gather(*tasks)
+
 
         # 第二遍：如果启用动态修复并且还有剩余的修复次数，继续修复
         if self.dynamic_fixing and remaining_fixes > 0:
-            for i, output in enumerate(repaired_outputs):
-                if remaining_fixes <= 0:
-                    break  # 没有剩余的修复次数了
-                repaired_outputs[i] = try_fix_output(output)
+            tasks = [try_fix_output(output) for output in repaired_outputs if remaining_fixes > 0]
+            repaired_outputs = await asyncio.gather(*tasks)
 
         return repaired_outputs, total_attempt
 
-    def conclusion_observation(self, observation: str) -> str:
-        if self.enable_conclusion is not True:
+    async def conclusion_observation(self, observation: str) -> str:
+        if not self.enable_conclusion:
             return observation
         _prompt = self.conclusion_prompt
         _question = self.get_conclusion_target_question()
 
         prompt_template = self._initialize_conclusion_prompt(_prompt, observation, _question)
-
         prompt_str = prompt_template.format_prompt().text
 
-        return chat_with_model_str(self.conclusion_model, prompt_str, return_str=True)
+        return await chat_with_model_str(self.conclusion_model, prompt_str, return_str=True)

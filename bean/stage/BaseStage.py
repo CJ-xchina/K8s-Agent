@@ -1,6 +1,9 @@
+import asyncio
+
 from langchain_core.language_models import BaseChatModel
 from langchain_core.prompts import PromptTemplate
-from utils.chat import chat_with_model_template
+
+from utils.chat import chat_with_model_template_batch
 
 
 class BaseStage:
@@ -69,7 +72,7 @@ class BaseStage:
         if extra_keys:
             raise ValueError(f"提供了多余的参数: {extra_keys}")
 
-    def _step_with_sct(self, variables=None) -> list[str]:
+    async def _step_with_sct(self, variables=None) -> list[str]:
         """
         生成多个输出以提高一致性，并返回生成的响应列表。
 
@@ -86,17 +89,15 @@ class BaseStage:
 
         if variables is None:
             variables = {}
-        print(f"Starting step with variables: {variables}")
-        outputs = []
 
         self._check_input_variables(variables)
 
-        # 生成多次输出以提高一致性
-        for i in range(self.self_consistency_times):
-            response = chat_with_model_template(self.chat_model, self.prompt_template, variables, True)
-            if response:
-                print(f"Iteration {i + 1}/{self.self_consistency_times}: Generated response: {response}")
-                outputs.append(response)
+        # 准备多次输入变量的列表，模拟多个请求
+        variables_list = [variables] * self.self_consistency_times
+
+        # 执行批量推理
+        outputs = await chat_with_model_template_batch(self.chat_model, self.prompt_template, variables_list,
+                                                       return_str=True)
 
         if not outputs:
             raise RuntimeError("生成的输出为空，这可能是由于 chat_model 的生成过程出现问题。")
@@ -118,10 +119,10 @@ class BaseStage:
             variables = {}
 
         # 生成初步的 self_consistency 数组
-        outputs = self._step_with_sct(variables)
+        outputs = asyncio.run(self._step_with_sct(variables))
 
         # 输出数据进一步处理,目前不做处理,子类中可能会有Action修复的逻辑
-        outputs, times = self.process_sct(outputs)
+        outputs, times = asyncio.run(self.process_sct(outputs))
 
         # 根据 self_consistency 输出投票选出最终输出
         final_output = self.select_final_output(outputs)
@@ -146,10 +147,9 @@ class BaseStage:
             raise ValueError(
                 "self_consistency 执行结束后LLM 输出列表为空, 可能存在下面两种可能：1. 所有的Action均解析失败 2. LLM 输出存在问题")
         selected_output = max(set(outputs), key=outputs.count)
-        print(f"select_final_output: Selected output is '{selected_output}' based on frequency.")
         return selected_output
 
-    def process_sct(self, outputs: list[str]) -> list[str]:
+    async def process_sct(self, outputs: list[str]) -> list[str]:
         """
         修复生成的输出列表，默认不对 outputs 进行任何修改。
 

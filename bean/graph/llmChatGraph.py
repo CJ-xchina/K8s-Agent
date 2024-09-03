@@ -36,7 +36,7 @@ class LlmChatGraph(Graph):
         :param node: 节点对象。
         :return: 格式化后的节点详细信息字符串。
         """
-        return f"专家提问: {node.if_statement}\n 你需要选择一个动作尝试回答这个问题!"
+        return f"专家提问: {node.if_statement}\n "
 
     def get_node_details_by_condition(self, condition: str) -> str:
         """
@@ -58,4 +58,5 @@ class LlmChatGraph(Graph):
         if not next_node_id:
             raise ValueError(f"节点 {node_id} 下不存在符合条件 '{condition}' 的跳转。")
 
+        self.current_node_id = next_node_id
         return self.get_node_details(next_node_id)

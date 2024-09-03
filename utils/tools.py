@@ -1,11 +1,9 @@
+from typing import List
+
 from langchain.agents import AgentOutputParser
 from langchain_core.tools.base import BaseTool
 from langchain_core.agents import AgentAction, AgentFinish
-
 from marshmallow import ValidationError
-
-
-
 
 
 def extract_tool_signature(output: str, tool_parser: AgentOutputParser):
@@ -63,3 +61,43 @@ def execute_action(tools: BaseTool, action: AgentAction) -> str:
         raise ValidationError(observation)
 
     return observation
+
+
+def validate_tool_input(tools: List[BaseTool], action: AgentAction) -> None:
+    """
+    验证 action 中的输入参数是否符合工具的要求。
+
+    参数:
+        tools (List[BaseTool]): 工具实例数组。
+        action (AgentAction): 包含工具名称和输入参数的动作对象。
+
+    抛出:
+        ValidationError: 如果输入参数与工具的要求不匹配，则抛出异常。
+    """
+    # 遍历工具列表，找到与 action.tool 匹配的工具
+    for tool in tools:
+        if tool.name == action.tool:
+            required_args = set(tool.args.keys())
+            provided_args = set(action.tool_input.keys())
+
+            # 检查是否有缺失的参数
+            missing_args = required_args - provided_args
+            if missing_args:
+                raise ValidationError(
+                    f"工具 '{tool.name}' 缺少必需的参数: {', '.join(missing_args)}。"
+                    f"提供的参数为: {provided_args}。必需的参数为: {required_args}。"
+                )
+
+            # 检查是否有多余的参数
+            extra_args = provided_args - required_args
+            if extra_args:
+                raise ValidationError(
+                    f"工具 '{tool.name}' 收到了多余的参数: {', '.join(extra_args)}。"
+                    f"提供的参数为: {provided_args}。必需的参数为: {required_args}。"
+                )
+
+            # 如果工具匹配且参数验证成功，则退出函数
+            return
+
+    # 如果没有找到匹配的工具，抛出异常
+    raise ValidationError(f"未找到与工具名称 '{action.tool}' 匹配的工具。")
