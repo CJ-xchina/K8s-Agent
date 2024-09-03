@@ -45,8 +45,10 @@ def execute_action(tools: BaseTool, action: AgentAction) -> str:
     for tool in tools:
         if tool.name == action.tool:
             try:
-                # 调用对应工具的 `run` 方法，执行工具操作
+                print(f"执行工具：{tool.name}\n "
+                      f"传入参数: {action.tool_input}")
                 observation = tool.run(action.tool_input)
+                print(f"执行结果: {observation}\n\n\n")
                 break
             except Exception as e:
                 # 处理工具执行过程中的其它异常

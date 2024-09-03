@@ -84,7 +84,7 @@ class PodAgent(baseAgent):
             name=stage_config.get('name', ""),
             description=stage_config.get('description', ""),
             enable_conclusion=stage_config.get('enable_conclusion', False),
-            conclusion_question_func=self.graph.get_current_node_details
+            node_details_func=self.graph.get_current_node_details
         )
 
         self.tool_stages.append(stage)

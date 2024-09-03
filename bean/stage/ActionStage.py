@@ -15,15 +15,6 @@ from utils.chat import chat_with_model_str
 from utils.tools import extract_tool_signature, execute_action, validate_tool_input
 
 
-def get_conclusion_target_question() -> str:
-    """
-    获取结论问题的默认实现。如果未绑定外部函数，将使用此默认实现。
-
-    :return: 问题
-    """
-    return "NULL"
-
-
 class ActionStage(BaseStage):
     """
     ActionStage 类用于实现与工具交互的对话逻辑。继承自 BaseStage。
@@ -62,11 +53,10 @@ class ActionStage(BaseStage):
                  self_consistency_times: int = 1,
                  enable_fixing: bool = False,
                  enable_conclusion: bool = False,
-                 conclusion_question_func: Callable = None,
+                 node_details_func: Callable = None,
                  fixing_prompt: str = None,
                  fixing_num: int = 3,
-                 dynamic_fixing: bool = True,
-                 stage_input_func=None):
+                 dynamic_fixing: bool = True):
         """
         初始化 ActionStage 类。
 
@@ -91,8 +81,7 @@ class ActionStage(BaseStage):
         self.tools = tools
         self.tool_parser = tool_parser
         self.chat_model = chat_model if chat_model is not None else self.default_model()
-
-        self._stage_input_func = stage_input_func
+        self.get_node_details = node_details_func
         if enable_fixing:
             self.fixing_model = fixing_model if fixing_model is not None else chat_model
             self.fixing_prompt = fixing_prompt if fixing_prompt is not None else self.default_fixing_prompt()
@@ -102,8 +91,6 @@ class ActionStage(BaseStage):
         if enable_conclusion:
             self.conclusion_model = conclusion_model if conclusion_model is not None else chat_model
             self.conclusion_prompt = conclusion_prompt if conclusion_prompt is not None else self.default_conclusion_prompt()
-            self.conclusion_question_func = conclusion_question_func
-            self.get_conclusion_target_question = conclusion_question_func if conclusion_question_func is not None else get_conclusion_target_question
 
         # 调用父类的初始化函数
         super().__init__(prompt,
@@ -130,12 +117,17 @@ class ActionStage(BaseStage):
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("Prompt 必须是一个非空字符串")
 
-        return PromptTemplate.from_template(prompt).partial(
-            tools=self.tool_parser.render_text_description_and_args(self.tools),  # 渲染工具描述
-            format_instructions=self.__chinese_friendly(  # 处理格式说明
-                self.tool_parser.get_format_instructions(),
-            )
-        )
+        # 初始化参数字典
+        partial_kwargs = {
+            "tools": self.tool_parser.render_text_description_and_args(self.tools),  # 渲染工具描述
+            "format_instructions": self.__chinese_friendly(self.tool_parser.get_format_instructions()),  # 处理格式说明
+        }
+
+        # 如果 prompt 中包含 'node_details'，则添加 'node_details' 参数
+        if "node_details" in prompt:
+            partial_kwargs["node_details"] = self.get_node_details()
+
+        return PromptTemplate.from_template(prompt).partial(**partial_kwargs)
 
     def _initialize_fixing_prompt(self, prompt: str, error: str, raw_action: str, cur_action: str) -> PromptTemplate:
         """
@@ -346,7 +338,7 @@ class ActionStage(BaseStage):
         if not self.enable_conclusion:
             return observation
         _prompt = self.conclusion_prompt
-        _question = self.get_conclusion_target_question()
+        _question = self.get_node_details()
 
         prompt_template = self._initialize_conclusion_prompt(_prompt, observation, _question)
         prompt_str = prompt_template.format_prompt().text
