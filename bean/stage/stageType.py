@@ -11,7 +11,6 @@ class StageType(Enum):
     - OBSERVATION: 表示观察阶段
     """
     THINKING = "Thinking"
-    ACTION = "Action"
+    TOLL = "Toll"
     OBSERVATION = "Observation"
 
-    START = THINKING

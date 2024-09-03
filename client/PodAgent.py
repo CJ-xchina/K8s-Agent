@@ -7,31 +7,30 @@ from langchain_core.output_parsers import StrOutputParser
 from marshmallow import ValidationError
 from langchain_core.tools import render_text_description
 from langchain.memory import ConversationTokenBufferMemory
-from client.baseModel import my_model
+
+from client.baseAgent import BaseAgent
 from client.handler import MyPrintHandler
 from langchain_core.agents import AgentAction
 
 from client.output_parser import StructuredChatOutputParser
+from stage.BaseStage import BaseStage
+from typing import List
 
 # 初始化日志记录器
 logger = logging.getLogger(__name__)
 
 
-class K8s_Agent:
+class PodAgent(BaseAgent):
 
     def __init__(
             self,
-            llm: BaseChatModel = my_model(
-                model="qwen2:7b-instruct-fp16", base_url="http://localhost:11434/v1", api_key="123"
-            ),
-            tools=None,  # 工具列表
-            prompt: str = "",  # 初始提示模板
-            final_prompt: Optional[int] = "",  # 最终提示模板
+            stages: List[BaseStage],
             max_thought_steps: Optional[int] = 10,  # 最大思考步数，防止死循环
     ):
         if tools is None:
             tools = []
 
+        self.stages = stages
         self.llm = llm  # 设置语言模型
         self.tools = tools  # 初始化工具列表
         self.max_thought_steps = max_thought_steps  # 设置最大思考步数

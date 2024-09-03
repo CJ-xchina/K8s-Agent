@@ -1,70 +1,78 @@
 from __future__ import annotations
 
-import json
 import logging
 import re
-from typing import Optional, Pattern, Union
+from typing import Union, List
 
 from langchain_core.agents import AgentAction, AgentFinish
 from langchain_core.exceptions import OutputParserException
-from langchain_core.language_models import BaseLanguageModel
-from langchain_core.pydantic_v1 import Field
+from langchain.tools import BaseTool  # 导入 BaseTool
 
-from langchain.agents.agent import AgentOutputParser
-from langchain.output_parsers import OutputFixingParser
-
-from setting.prompt_Action import FORMAT_INSTRUCTIONS
+from bean.parser.BaseOutputParser import BaseOutputParser
+from setting.prompt_Thinking import FORMAT_INSTRUCTIONS
 
 logger = logging.getLogger(__name__)
 
 
-class StructuredChatOutputParser(AgentOutputParser):
-    """Output parser for the structured chat agent."""
+class StructuredThinkingOutputParser(BaseOutputParser):
+    """结构化思维输出解析器。"""
 
     format_instructions: str = FORMAT_INSTRUCTIONS
-    """Default formatting instructions"""
+    """默认格式说明"""
 
-    final_action: str = "Final Answer"
+    tools: list[BaseTool] = []  # BaseTool 对象数组
 
-    tool_name: str = "action"
-
-    tool_vars: str = "action_input"
+    def __init__(self, tools: list[BaseTool]):
+        super().__init__()
+        self.tools = tools
 
     def get_format_instructions(self) -> str:
         """Returns formatting instructions for the given output parser."""
         return self.format_instructions
 
     def parse(self, text: str) -> Union[AgentAction, AgentFinish]:
-        # Check if the response dictionary has exactly the required two keys
-        required_keys = {self.tool_name, self.tool_vars}
+        """解析文本以确定是否含有任一工具名称，并进行适当的动作。
 
-        try:
-            response = json.loads(text, strict=False)
-        except json.JSONDecodeError:
-            raise OutputParserException(f"无法解析输出的动作: {text}，这是因为你输出的动作不符合要求的格式规范！"
-                                        f"你的输出应该是一个完整的JSON, 不允许出现除了Json外的其他内容！"
-                                        f"请你详细阅读工具使用说明中的案例并且根据这个正则表达式分析为什么会无法解析到你输出的内容！")
+        参数:
+            text (str): 输入文本。
 
+        返回:
+            AgentAction 或 AgentFinish: 根据解析结果返回动作或结束信号。
+        """
+        # 使用正则表达式检查文本中是否含有工具的名称
+        matched_tools = [tool for tool in self.tools if re.search(f"\\b{tool.name}\\b", text)]
 
-
-        response_keys = set(response.keys())
-        # Check if the required keys are in the response dictionary
-        if response_keys != required_keys:
+        if len(matched_tools) > 1:
             raise OutputParserException(
-                f"无法解析输出的动作: {text}。" +
-                f"你输入的Json中，要求的工具名称的 key 应该是 '{self.tool_name}'，"
-                f"要求的工具变量名称应该是 '{self.tool_vars}'"
-
+                f"你尝试与多位专家取得联络, 匹配到的专家名称为：{', '.join(tool.name for tool in matched_tools)}。"
+                "请确保只存在一个专家名称。"
             )
-        if response["action"] == self.final_action:
-            return AgentFinish({"output": response["action_input"]}, text)
-        else:
-            return AgentAction(
-                response["action"], response.get("action_input", {}), text
+        elif not matched_tools:
+            raise OutputParserException(
+                "响应中未匹配到任何专家名称。"
+                f"可联系的专家名称如下：{', '.join(tool.name for tool in self.tools)}。"
+                "请确保联络一位专家传递信息。"
             )
 
-    @property
-    def _type(self) -> str:
-        return "structured_chat"
+        tool_name = matched_tools[0].name
 
+        return AgentAction(tool_name, {}, text)
 
+    def render_text_description_and_args(self, tools: List[BaseTool]) -> str:
+        """
+        生成工具的名称、描述及参数的纯文本格式描述。
+
+        参数:
+            tools (List[BaseTool]): 需要渲染的工具列表。
+
+        返回:
+            str: 生成的文本描述。
+
+        输出将采用如下格式:
+
+        """
+        expert_strings = []
+        for tool in tools:
+            description = f"专家名称 :{tool.name} \n详细介绍 : \n{tool.description}"
+            expert_strings.append(f"{description}\n")
+        return "\n".join(expert_strings)

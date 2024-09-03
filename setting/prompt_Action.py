@@ -1,40 +1,61 @@
-prompt_text = """
-你是强大的AI Kubernetes 助手，可以使用工具与指令查询并且分析可能出现问题的 Pod 
-
-你当前执行的任务是:
-{task_description}
-
-你可以使用以下工具或指令，它们又称为动作或actions:
+MAIN_PROMPT = """
+------------
+你可以使用以下工具或指令，它们又称为动作或actions,下面是关于本次能够使用的工具的详细介绍：
 {tools}
+-----------
 
-当前的任务执行记录:
-{memory}
-
+------------
+关于如何使用工具，或者说你的输出格式规范请你详细阅读并且严格遵循规范手则：
 {format_instructions}
+------------
 
-注意事项：最多只能输出一个Action和Thought！注意事项：最多只能输出一个Action和Thought！注意事项：最多只能输出一个Action和Thought！让我们开始一步一步来思考吧！
+这是本次你需要分析的Kubernetes资源信息 :
+{details}
+
+请你根据上述全部的要求, 仔细思考后输出你的想法以及可能执行的动作！
 """
 
+GRAPH_PROMPT = """
+你是一位经验丰富的 Kubernetes 运维专家，擅长解析和处理复杂的系统日志及运维数据。你的主要职责是根据用户提供的观察结果和问题提问，进行详细的分析与总结。
+
+你的任务包括：详细分析用户提供的当前信息以及过往信息，然后根据你的分析对于用户提出的问题进行True或者是False的判断，例如：
+"观察结果"：kubectl get pods 显示所有服务正常运行，CPU和内存使用率在合理范围内，日志没有错误提示。
+"问题"：服务是否存在性能瓶颈？
+这个问题的答案为False，因此你需要判断出来这个False。
+
+用户过往信息如下：
+{history}
+
+用户当前信息如下：
+{input}
+然后根据我提供给你的工具，输出一个工具调用，调用参数就是你的判断结果！
+""" + MAIN_PROMPT
+
+ACTION_PROMPT = """
+你是强大的AI Kubernetes 助手，可以使用工具与指令查询并且分析可能出现问题的Kubernetes资源，
+
+本次输出中，你的任务是根据专家提供的执行建议, 从
+
+------------
+根据之前的思考, 你当前需要执行的操作是:
+{input}
+------------
+""" + MAIN_PROMPT
+
+
+
 FORMAT_INSTRUCTIONS = """
-使用JSON来指定工具时，需要提供一个键 `action`（工具名称）以及一个键 `action_input`（工具输入）。
+注意：你输出的内容可以是纯文本, 可以是Json, 也可以是纯文本 + Json。只要你输出的内容中包含JSON, 就代表你做出了一次选择工具的决定，这个需要提供一个键 `action`（工具名称）以及一个键 `action_input`（工具输入）。
 
 有效的 `action` 值包括：“Final Answer” 或 `{tool_names}`
 
 每个JSON块中只能包含一个操作，如下所示：
 
 {
-  "action": $TOOL_NAME,
-  "action_input": $INPUT
-}
-
-例如：
-
-{
-  "action": "kubectl_describe",
+  "action": "function_name",
   "action_input": {
-    "resource_type": "Pod",
-    "resource_name": "k8s-test-3",
-    "namespace": "default"
+    "var1": "value1",
+    "var2": "value2"
   }
 }
 
@@ -43,7 +64,6 @@ FORMAT_INSTRUCTIONS = """
   "action": "Final Answer",
   "action_input": ""
 }
-
 """
 
 NAIVE_FIX = """
@@ -81,6 +101,21 @@ NAIVE_FIX = """
 不允许输出其他内容以及分析的过程！接下来请你输出修复后的Action工具的字符串调用：
 """
 
+CONCLUSION = """
+以下是给定的数据和信息内容:
+
+{raw_input}
+
+请你针对以下问题进行详细分析，并总结出信息中最重要的关键点：
+
+问题: {question}
+
+请确保你的总结包括以下内容:
+1. 与问题直接相关的主要信息。
+2. 数据中支持这些关键点的具体细节。
+
+请用清晰且简洁的语言回答, 字数不超过50字, 只需要输出你找到的与问题相关的信息！
+"""
 
 final_prompt = """
 你的任务是:

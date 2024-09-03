@@ -1,10 +1,6 @@
-from typing import List
-
 from langchain_core.language_models import BaseChatModel
 from langchain_core.prompts import PromptTemplate
-
-from stage.stageType import StageType
-from utils.chat import chat_with_model_str, chat_with_model_template
+from utils.chat import chat_with_model_template
 
 
 class BaseStage:
@@ -14,15 +10,10 @@ class BaseStage:
     属性:
         prompt (PromptTemplate): 存储对话提示的模板。
         chat_model (BaseChatModel): 用于生成对话输出的语言模型。
-        stage_type (StageType): 表示当前阶段的类型。
         self_consistency_times (int): 用于生成多次对话输出以增强一致性。
     """
 
-    @staticmethod
-    def default_prompt() -> str:
-        return "This is the default prompt."
-
-    def __init__(self, prompt: str, chat_model: BaseChatModel, stage_type: StageType = StageType.START,
+    def __init__(self, prompt: str, chat_model: BaseChatModel,
                  self_consistency_times: int = 1):
         """
         初始化 BaseStage 类。
@@ -30,7 +21,6 @@ class BaseStage:
         参数:
             prompt (str): 用于对话的初始提示字符串。
             chat_model (BaseChatModel): 用于生成对话的语言模型实例。
-            stage_type (StageType): 表示当前阶段的类型，默认为 StageType.START。
             self_consistency_times (int): 表示自一致性次数，必须大于0。
 
         抛出:
@@ -39,14 +29,10 @@ class BaseStage:
         if self_consistency_times < 1:
             raise ValueError("self_consistency_times 必须大于0")
 
-        # 获取默认值
-        if prompt is None:
-            prompt = self.default_prompt()
-
+        self.prompt = prompt
         self.prompt_template = self._initialize_prompt(prompt)
         self.prompt = self._initialize_prompt(prompt)
         self.chat_model = chat_model
-        self.stage_type = stage_type
         self.self_consistency_times = self_consistency_times
 
     def _initialize_prompt(self, prompt: str) -> PromptTemplate:
@@ -127,6 +113,10 @@ class BaseStage:
         返回:
             str: 选择后的最终输出。
         """
+        # 初始化变量字典
+        if variables is None:
+            variables = {}
+
         # 生成初步的 self_consistency 数组
         outputs = self._step_with_sct(variables)
 
@@ -135,6 +125,7 @@ class BaseStage:
 
         # 根据 self_consistency 输出投票选出最终输出
         final_output = self.select_final_output(outputs)
+
         return final_output
 
     def select_final_output(self, outputs: list[str]) -> str:

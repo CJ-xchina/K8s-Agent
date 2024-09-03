@@ -21,6 +21,7 @@ query3 = ("请你根据我提供给你的工具，使用日志、describe描述�
 memory = MemorySaver()
 # 定义工具
 tools = [kubectl_describe, kubectl_pod_logs, kubectl_get_pods]
+
 config = {"configurable": {"session_id": "test-session"}}
 
 # PROMPT = hub.pull("hwchase17/structured-chat-agent", api_key='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')
