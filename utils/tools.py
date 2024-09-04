@@ -1,8 +1,8 @@
 from typing import List
 
 from langchain.agents import AgentOutputParser
-from langchain_core.tools.base import BaseTool
 from langchain_core.agents import AgentAction, AgentFinish
+from langchain_core.tools.base import BaseTool
 from marshmallow import ValidationError
 
 
@@ -48,6 +48,7 @@ def execute_action(tools: BaseTool, action: AgentAction) -> str:
                 print(f"执行工具：{tool.name}\n "
                       f"传入参数: {action.tool_input}")
                 observation = tool.run(action.tool_input)
+                # observation = tool.description + "返回的内容 :" + observation
                 print(f"执行结果: {observation}\n\n\n")
                 break
             except Exception as e:

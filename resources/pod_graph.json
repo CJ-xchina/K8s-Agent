@@ -4,7 +4,7 @@
       "id": "1",
       "type": "start",
       "action": "kubectl get pods",
-      "if_statement": "是否有任何 Pod 处于 PENDING 状态？检查是否有 Pod 在等待资源分配或调度。",
+      "if_statement": "该 Pod 是否处于 PENDING 状态？",
       "true_transition": "2",
       "false_transition": "6"
     },
@@ -44,7 +44,7 @@
       "id": "6",
       "type": "intermediate",
       "action": "",
-      "if_statement": "Pods 是否在运行状态？检查所有 Pod 是否成功启动并处于 RUNNING 状态。",
+      "if_statement": "该 Pod 是否在运行 (Running) 状态？",
       "true_transition": "9",
       "false_transition": "22"
     },
@@ -67,7 +67,7 @@
     {
       "id": "9",
       "type": "intermediate",
-      "action": "检查 Pods 是否处于 READY 状态？",
+      "action": "检查该 pod 是否处于 READY 状态？",
       "if_statement": "Pods 是否已就绪？检查是否容器都通过了就绪探针（Readiness Probe）的检查。",
       "true_transition": "39",
       "false_transition": "11"

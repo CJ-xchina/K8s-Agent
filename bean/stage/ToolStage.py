@@ -8,7 +8,7 @@ from bean.stage.stageType import StageType
 class ToolStageMemoryStrategy(MemoryStrategy):
     def save_memory(self, memory: ConversationBufferMemory, input_str: str, output_str: str):
         # ToolStage 只保存输出内容，不保存输入内容
-        memory.save_context({"input": "null"}, {"output": output_str})
+        memory.save_context({"input": ""}, {"output": output_str})
 
     def load_memory(self, memory: ConversationBufferMemory) -> dict:
         return {}

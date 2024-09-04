@@ -1,15 +1,14 @@
-import subprocess
-import yaml
 from langchain.tools import tool
+
 from setting.k8s import kubernetes_client
 
+
 @tool(parse_docstring=True)
-def kubectl_describe(resource_type: str, resource_name: str, namespace: str = "default") -> str:
+def kubectl_describe(resource_name: str, namespace: str = "default") -> str:
     """
-    执行 `kubectl describe` 命令并返回过滤后的纯文本格式结果。
+    执行 `kubectl describe` 命令并返回过滤后的纯文本格式结果。kubectl describe pod <pod-name> 输出结果
 
     Args:
-        resource_type : Kubernetes资源类型 (例如: pod, service)。
         resource_name : 资源名称。
         namespace : 资源所在的命名空间，默认是 "default"。
 
@@ -18,7 +17,7 @@ def kubectl_describe(resource_type: str, resource_name: str, namespace: str = "d
     """
 
     v1 = kubernetes_client()
-
+    resource_type = 'pod'
     if resource_type.lower() == "pod":
         resource = v1.read_namespaced_pod(name=resource_name, namespace=namespace)
     elif resource_type.lower() == "service":
@@ -58,20 +57,19 @@ def kubectl_describe(resource_type: str, resource_name: str, namespace: str = "d
 
 
 @tool(parse_docstring=True)
-def kubectl_pod_logs(pod_name: str, namespace: str = "default", container_name: str = None) -> str:
+def kubectl_pod_logs(pod_name: str, namespace: str = "default") -> str:
     """
-    获取指定 Pod 的日志。
+    获取指定 Pod 的日志。kubectl logs <pod-name> 查询日志输出结果:
 
     Args:
         pod_name : Pod 的名称。
         namespace : Pod 所在的命名空间，默认是 "default"。
-        container_name : 指定容器的名称，如果 Pod 中有多个容器。
 
     Returns:
         str: 指定 Pod（及容器）的日志。
     """
     v1 = kubernetes_client()
-    logs = v1.read_namespaced_pod_log(name=pod_name, namespace=namespace, container=container_name)
+    logs = v1.read_namespaced_pod_log(name=pod_name, namespace=namespace)
 
     return logs
 
@@ -79,7 +77,7 @@ def kubectl_pod_logs(pod_name: str, namespace: str = "default", container_name: 
 @tool(parse_docstring=True)
 def kubectl_get_details(namespace: str, pod_name: str) -> str:
     """
-    获取指定命名空间和指定名称的 Pod 详细信息。
+    获取指定命名空间和指定名称的 Pod 详细信息。kubectl get pod -n <pod-name> 获取 Pod 详细信息
 
     Args:
         namespace : Pod 所在的命名空间。

@@ -6,7 +6,7 @@ stages:
     memory: tool
     name: "process_planning_expert"
     description: >
-      根据分析集群实时数据信息, 对于YES or NO 问题已经有明确的答案以及理由依据时, 联系 process_planning_expert 汇报分析的结果。
+      根据分析集群实时数据信息, 对于 YES or NO 问题已经有明确的答案, 请联系 process_planning_expert 汇报分析的结果。
       process_planning_expert 要求输出原问题以及问题的解决思路最终输出YES OR NO 的问题答案
     self_consistency_times: 5
     enable_fixing: true
@@ -21,11 +21,11 @@ stages:
     memory: tool
     name: "kubectl_command_expert"
     description: >
-      缺少可供分析集群实时数据信息，希望获取 更多的集群信息(例如日志、Pod运行状态、集群Node状态等等), 联系kubectl_command_expert 获取更多信息, 
-      kubectl_command_expert 要求输出内容必须包含一条Kubectl指令并详细介绍该条指令，只允许出现一条指令！
-    self_consistency_times: 5
+      资讯联系 kubectl_command_expert 获取更多的集群信息(例如日志、Pod运行状态、集群Node状态等等)! 如果期望输出有任何的kubectl指令, 请你联系我!
+      kubectl_command_expert 要求输出内容必须包含一条Kubectl指令并详细介绍该条指令，只允许出现一条指令!
+    self_consistency_times: 3
     enable_fixing: true
-    fixing_num: 2
+    fixing_num: 5
     enable_conclusion: true
 
   - stage_type: ThinkingStage

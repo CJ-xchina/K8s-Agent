@@ -53,7 +53,7 @@ class ActionMemoryStage(ActionStage):
                  prompt: str,
                  tools: List[BaseTool],
                  tool_parser: BaseOutputParser,
-                 memory: ConversationBufferMemory,
+                 memory: ConversationBufferMemory = ConversationBufferMemory(),
                  **kwargs):
         """
         初始化 ActionMemoryStage 类。

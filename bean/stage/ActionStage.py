@@ -38,7 +38,7 @@ class ActionStage(BaseStage):
 
     @staticmethod
     def default_model() -> BaseChatModel:
-        return ChatOpenAI(model="qwen2:7b", base_url="http://localhost:11434/v1",
+        return ChatOpenAI(model="qwen2:7b-instruct-fp16", base_url="http://localhost:11434/v1",
                           api_key="<KEY>")
 
     def __init__(self,

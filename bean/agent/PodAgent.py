@@ -71,22 +71,38 @@ class PodAgent(baseAgent):
         memory = self.memory_thinking
         prompt = self.replace_details(globals()[stage_config['prompt']])  # 替换details
 
-        stage = ToolStage(
-            prompt=prompt,
-            chat_model=ChatOpenAI(model="qwen2:7b", base_url="http://localhost:11434/v1",
-                                  api_key="<KEY>"),
-            tool_parser=StructuredChatOutputParser(),
-            tools=tools,
-            self_consistency_times=stage_config.get('self_consistency_times', 10),
-            enable_fixing=stage_config.get('enable_fixing', False),
-            fixing_num=stage_config.get('fixing_num', 1),
-            memory=memory,
-            name=stage_config.get('name', ""),
-            description=stage_config.get('description', ""),
-            enable_conclusion=stage_config.get('enable_conclusion', False),
-            node_details_func=self.graph.get_current_node_details
-        )
-
+        name = stage_config.get('name')
+        if name == "process_planning_expert":
+            stage = ToolStage(
+                prompt=prompt,
+                chat_model=ChatOpenAI(model="qwen2:7b-instruct-fp16", base_url="http://localhost:11434/v1",
+                                      api_key="<KEY>"),
+                tool_parser=StructuredChatOutputParser(),
+                tools=tools,
+                self_consistency_times=stage_config.get('self_consistency_times', 10),
+                enable_fixing=stage_config.get('enable_fixing', False),
+                fixing_num=stage_config.get('fixing_num', 1),
+                name=stage_config.get('name', ""),
+                description=stage_config.get('description', ""),
+                enable_conclusion=stage_config.get('enable_conclusion', False),
+                node_details_func=self.graph.get_current_node_details
+            )
+        else:
+            stage = ToolStage(
+                prompt=prompt,
+                chat_model=ChatOpenAI(model="qwen2:7b-instruct-fp16", base_url="http://localhost:11434/v1",
+                                      api_key="<KEY>"),
+                tool_parser=StructuredChatOutputParser(),
+                tools=tools,
+                self_consistency_times=stage_config.get('self_consistency_times', 10),
+                enable_fixing=stage_config.get('enable_fixing', False),
+                fixing_num=stage_config.get('fixing_num', 1),
+                memory=memory,
+                name=stage_config.get('name', ""),
+                description=stage_config.get('description', ""),
+                enable_conclusion=stage_config.get('enable_conclusion', False),
+                node_details_func=self.graph.get_current_node_details
+            )
         self.tool_stages.append(stage)
         return stage
 
@@ -96,9 +112,10 @@ class PodAgent(baseAgent):
         prompt = self.replace_details(globals()[stage_config['prompt']])  # 替换details
 
         stage = ThinkingStage(
-            chat_model=ChatOpenAI(model="qwen2:7b", base_url="http://localhost:11434/v1",
+            # qwen2:7b-instruct-fp16-instruct-fp16
+            chat_model=ChatOpenAI(model="qwen2:7b-instruct-fp16", base_url="http://localhost:11434/v1",
                                   api_key="<KEY>"),
-            fixing_model=ChatOpenAI(model="qwen2:7b", base_url="http://localhost:11434/v1",
+            fixing_model=ChatOpenAI(model="qwen2:7b-instruct-fp16", base_url="http://localhost:11434/v1",
                                     api_key="<KEY>"),
             prompt=prompt,
             tool_parser=StructuredThinkingOutputParser(tools=tools),
@@ -149,6 +166,7 @@ class PodAgent(baseAgent):
         while True:
             for cur_stage in self.thinking_stages:
                 output = cur_stage._step(self.get_thinking_input())
+                print("")
 
 
 def main():
