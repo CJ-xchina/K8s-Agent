@@ -28,16 +28,18 @@ class Pod:
         self.name = name
         self.namespace = namespace
 
-    def get_info(self) -> str:
+    def get_info(self) -> dict:
         """
-        返回Pod基础信息的拼接字符串。
+        返回Pod基础信息的字典。
 
         返回:
-            str: 拼接后的Pod基础信息字符串。
+            dict: 包含Pod基础信息的字典。
         """
-        return (f"资源类型 : Kubernetes Pod\n"
-                f"Pod Name: {self.name}\n"
-                f"Namespace: {self.namespace}\n")
+        return {
+            "resource_type": "Kubernetes Pod",
+            "name": self.name,
+            "namespace": self.namespace
+        }
 
 
 class PodAgent(baseAgent):

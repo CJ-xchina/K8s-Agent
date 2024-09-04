@@ -34,7 +34,7 @@ class LlmChatGraph(Graph):
         :param node: 节点对象。
         :return: 格式化后的节点详细信息字符串。
         """
-        return f"专家提问: {node.if_statement}\n 建议执行的指令或动作: {node.action}"
+        return f" {node.if_statement} ?\n 建议执行的指令或动作: {node.action}"
 
     def get_node_details_by_condition(self, condition: str) -> str:
         """
