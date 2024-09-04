@@ -127,7 +127,7 @@ class ActionStage(BaseStage):
         if "node_details" in prompt:
             partial_kwargs["node_details"] = self.get_node_details()
 
-        return PromptTemplate.from_template(prompt).partial(**partial_kwargs)
+        return PromptTemplate.from_template(prompt, template_format="jinja2").partial(**partial_kwargs)
 
     def _initialize_fixing_prompt(self, prompt: str, error: str, raw_action: str, cur_action: str) -> PromptTemplate:
         """
@@ -156,7 +156,7 @@ class ActionStage(BaseStage):
         if not isinstance(cur_action, str) or not raw_action.strip():
             raise ValueError("Raw action 必须是一个非空字符串")
 
-        return PromptTemplate.from_template(prompt).partial(
+        return PromptTemplate.from_template(prompt, template_format="jinja2").partial(
             tools=self.tool_parser.render_text_description_and_args(self.tools),  # 渲染工具描述
             format_instructions=self.__chinese_friendly(  # 处理格式说明
                 self.tool_parser.get_format_instructions(),
@@ -182,7 +182,7 @@ class ActionStage(BaseStage):
             ValueError: 如果传入的 observation、_prompt 或 _question 为空或不是字符串类型。
         """
 
-        return PromptTemplate.from_template(_prompt).partial(
+        return PromptTemplate.from_template(_prompt, template_format="jinja2").partial(
             raw_input=observation,
             question=_question
         )

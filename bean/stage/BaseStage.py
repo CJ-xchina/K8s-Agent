@@ -53,7 +53,7 @@ class BaseStage:
         """
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("Prompt 必须是一个非空字符串")
-        return PromptTemplate.from_template(prompt)
+        return PromptTemplate.from_template(prompt, template_format="jinja2")
 
     def _check_input_variables(self, variables: dict):
         # 提取 PromptTemplate 中所需的参数名
