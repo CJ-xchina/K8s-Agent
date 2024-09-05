@@ -1,24 +1,23 @@
 import json
-from typing import List, Dict, Optional, Union
 from typing import List, Dict, Optional
 
 
 class Node:
-    def __init__(self, node_id: str, node_type: str, action: Optional[str] = None, if_statement: Optional[str] = None):
+    def __init__(self, node_id: str, node_type: str, question: Optional[str] = None,
+                 regex: Optional[str] = None, action: Optional[str] = None):
         self.node_id = node_id
         self.node_type = node_type
+        self.question = question
+        self.regex = regex
         self.action = action
-        self.if_statement = if_statement
-        self.transitions = {}
+        self.transitions = []
 
-    def add_transition(self, condition: str, target_node: str):
-        self.transitions[condition] = target_node
+    def add_transition(self, condition_value: str, target_node: str):
+        self.transitions.append((condition_value, target_node))
 
     def get_reachable_nodes(self) -> List[str]:
-        return list(self.transitions.values())
+        return [target for _, target in self.transitions]
 
-    def __repr__(self):
-        return f"Node(id={self.node_id}, type={self.node_type}, action={self.action}, transitions={self.transitions})"
 
 
 class Graph:
@@ -29,9 +28,7 @@ class Graph:
         :param json_source: JSON string, file path to a JSON file, or a dictionary containing the graph data.
         """
         self.nodes = {}
-
         self.start_node_id = start_node_id
-
         self.current_node_id = start_node_id
         if json_source:
             if isinstance(json_source, str):
@@ -47,7 +44,7 @@ class Graph:
             elif isinstance(json_source, Dict):
                 self.load_from_json(json_source)
 
-        self.traverse_graph(self.start_node_id)
+        self.find_isolated_nodes()
 
     def traverse_graph(self, start_node_id: str):
         """
@@ -61,9 +58,13 @@ class Graph:
             if not node:
                 break
 
-            # 简单起见，遵循 'true' 转移
-            next_node_id = node.transitions.get('true')
-            if not next_node_id:
+            # 这里可以根据用户输入或系统选择执行节点的action
+            print(f"Node {node.node_id}: {node.question}")
+
+            # For demonstration, we simulate choosing the first transition
+            if node.transitions:
+                next_node_id = node.transitions[0][1]
+            else:
                 break
 
             current_node_id = next_node_id
@@ -86,14 +87,13 @@ class Graph:
             node = Node(
                 node_id=node_data["id"],
                 node_type=node_data["type"],
-                action=node_data.get("action"),
-                if_statement=node_data.get("if_statement")
+                question=node_data.get("question"),
+                regex=node_data.get("regex"),
+                action=node_data.get("action")
             )
             self.add_node(node)
-            if "true_transition" in node_data:
-                node.add_transition("true", node_data["true_transition"])
-            if "false_transition" in node_data:
-                node.add_transition("false", node_data["false_transition"])
+            for condition, target in node_data.get("transitions", {}).items():
+                node.add_transition(condition, target)
 
     def find_isolated_nodes(self):
         isolated_nodes = []
@@ -117,17 +117,52 @@ class Graph:
         else:
             print("No isolated nodes found.")
 
-    def __repr__(self):
-        return f"Graph(nodes={self.nodes})"
-
 
 if __name__ == "__main__":
     # Initialize with a file path
-    gr = Graph("../../resources/pod_graph.json")
+    # gr = Graph("../../resources/pod_graph.json")
 
     # Alternatively, initialize with a JSON string
-    # json_string = '{"nodes": [{"id": "1", "type": "start", ...}]}'
-    # gr = Graph(json_string)
+    json_string = '''
+    {
+        "nodes": [
+            {
+                "id": "1",
+                "type": "start",
+                "question": "What is your favorite color?",
+                "regex": "red|blue|green",
+                "action": "store_color",
+                "transitions": {
+                    "red": "2",
+                    "blue": "3",
+                    "green": "4"
+                }
+            },
+            {
+                "id": "2",
+                "type": "response",
+                "question": "You selected red!",
+                "action": "end",
+                "transitions": {}
+            },
+            {
+                "id": "3",
+                "type": "response",
+                "question": "You selected blue!",
+                "action": "end",
+                "transitions": {}
+            },
+            {
+                "id": "4",
+                "type": "response",
+                "question": "You selected green!",
+                "action": "end",
+                "transitions": {}
+            }
+        ]
+    }
+    '''
+    gr = Graph("1", json_string)
 
     gr.find_isolated_nodes()
-    print("ok")
+    print("Graph traversal complete.")

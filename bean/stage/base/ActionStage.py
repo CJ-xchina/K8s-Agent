@@ -88,10 +88,6 @@ class ActionStage(BaseStage):
             self.fixing_num = fixing_num
             self.dynamic_fixing = dynamic_fixing
 
-        if enable_conclusion:
-            self.conclusion_model = conclusion_model if conclusion_model is not None else chat_model
-            self.conclusion_prompt = conclusion_prompt if conclusion_prompt is not None else self.default_conclusion_prompt()
-
         # 调用父类的初始化函数
         super().__init__(prompt,
                          chat_model,
