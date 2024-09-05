@@ -1,9 +1,16 @@
-from typing import List
+from typing import List, Callable
 
 from langchain.agents import AgentOutputParser
 from langchain_core.agents import AgentAction, AgentFinish
-from langchain_core.tools.base import BaseTool
+from langchain_core.tools import BaseTool
 from marshmallow import ValidationError
+
+from tools.k8s_tools import kubectl_describe, kubectl_pod_logs, kubectl_get_details, kubectl_command
+
+
+def get_all_tools() -> list[
+    Callable[[str, str], str] | Callable[[str, str], str] | Callable[[str, str], str] | Callable[[str], str]]:
+    return [kubectl_describe, kubectl_pod_logs, kubectl_get_details, kubectl_command]
 
 
 def extract_tool_signature(output: str, tool_parser: AgentOutputParser):
@@ -29,7 +36,7 @@ def extract_tool_signature(output: str, tool_parser: AgentOutputParser):
     return output
 
 
-def execute_action(tools: BaseTool, action: AgentAction) -> str:
+def execute_action(action: AgentAction, tools: BaseTool = None) -> str:
     """
     根据解析出的动作执行相应的工具。
 
@@ -40,6 +47,8 @@ def execute_action(tools: BaseTool, action: AgentAction) -> str:
     返回:
         str: 工具执行的结果或异常信息。
     """
+    if tools is None:
+        tools = get_all_tools()
     observation = ""  # 用于存储工具执行后的观察结果
 
     for tool in tools:
@@ -48,7 +57,6 @@ def execute_action(tools: BaseTool, action: AgentAction) -> str:
                 print(f"执行工具：{tool.name}\n "
                       f"传入参数: {action.tool_input}")
                 observation = tool.run(action.tool_input)
-                # observation = tool.description + "返回的内容 :" + observation
                 print(f"执行结果: {observation}\n\n\n")
                 break
             except Exception as e:
@@ -66,7 +74,7 @@ def execute_action(tools: BaseTool, action: AgentAction) -> str:
     return observation
 
 
-def validate_tool_input(tools: List[BaseTool], action: AgentAction) -> None:
+def validate_tool_input(action: AgentAction, tools: List[BaseTool] = None) -> None:
     """
     验证 action 中的输入参数是否符合工具的要求。
 
@@ -77,6 +85,8 @@ def validate_tool_input(tools: List[BaseTool], action: AgentAction) -> None:
     抛出:
         ValidationError: 如果输入参数与工具的要求不匹配，则抛出异常。
     """
+    if tools is None:
+        tools = get_all_tools()
     # 遍历工具列表，找到与 action.tool 匹配的工具
     for tool in tools:
         if tool.name == action.tool:

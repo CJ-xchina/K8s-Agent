@@ -1,3 +1,5 @@
+import subprocess
+
 from langchain.tools import tool
 
 from setting.k8s import kubernetes_client
@@ -92,3 +94,30 @@ def kubectl_get_details(namespace: str, pod_name: str) -> str:
     pod_details = pod.to_dict()
 
     return pod_details
+
+
+@tool(parse_docstring=True)
+def kubectl_command(command: str) -> str:
+    """
+    执行任意 `kubectl` 命令并返回结果。
+
+    Args:
+        command : 需要执行的 `kubectl` 命令（例如: "get pods -n default"）。
+
+    Returns:
+        str: `kubectl` 命令的输出结果，格式为纯文本。
+    """
+    try:
+
+        # 执行命令
+        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+
+        # 检查是否有错误输出
+        if result.returncode != 0:
+            return f"命令执行失败: {result.stderr}"
+
+        # 返回命令输出结果
+        return result.stdout
+
+    except Exception as e:
+        return f"命令执行过程中出现异常: {str(e)}"

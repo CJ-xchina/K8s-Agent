@@ -1,8 +1,11 @@
+from typing import Optional
+
 from bean.stage.ActionStage import ActionStage
 from langchain.memory import ConversationBufferMemory
 
 from bean.stage.ActionMemoryStage import ActionMemoryStage, MemoryStrategy
 from bean.stage.stageType import StageType
+from langchain_core.agents import AgentAction
 
 
 class ToolStageMemoryStrategy(MemoryStrategy):
