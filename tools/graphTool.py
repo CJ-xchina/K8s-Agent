@@ -13,7 +13,7 @@ class GraphToolInput(BaseModel):
 class GraphTool(BaseTool):
     name = "graph_tool"
     description = """
-    如果你认为是正确的则填入'true'，你认为错误的则跳入'false',例如输出
+如果你认为是正确的则填入'true'，你认为错误的则跳入'false',例如输出
 '{
 "action": "graph_tool",
 "action_input": {
@@ -21,8 +21,8 @@ class GraphTool(BaseTool):
 }
 }'
 代表你人为本次判断为正确,同样的如果condition："false"，则你认为本次判断的结果应该为错误的或者是没有。
- 
-    """
+
+"""
     _graph: LlmChatGraph = PrivateAttr()
     args_schema: Type[BaseModel] = GraphToolInput  # 需要定义输入的结构
 
