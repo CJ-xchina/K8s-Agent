@@ -9,10 +9,10 @@ from langchain_core.tools import BaseTool
 from langchain_openai import ChatOpenAI
 
 from bean.parser.BaseOutputParser import BaseOutputParser
-from bean.stage.BaseStage import BaseStage
+from bean.stage.base.BaseStage import BaseStage
 from setting.prompt_Action import NAIVE_FIX, MAIN_PROMPT, CONCLUSION
 from utils.chat import chat_with_model_str
-from utils.tools import extract_tool_signature, execute_action, validate_tool_input
+from utils.tools import extract_tool_signature, validate_tool_input
 
 
 class ActionStage(BaseStage):
@@ -48,8 +48,6 @@ class ActionStage(BaseStage):
                  tool_parser: BaseOutputParser,
                  chat_model: BaseChatModel = None,
                  fixing_model: BaseChatModel = None,
-                 conclusion_model: BaseChatModel = None,
-                 conclusion_prompt: str = None,
                  self_consistency_times: int = 1,
                  enable_fixing: bool = False,
                  enable_conclusion: bool = False,
@@ -72,9 +70,6 @@ class ActionStage(BaseStage):
             fixing_num (int): 修复次数。
             dynamic_fixing (bool): 是否启用动态修复。
             enable_conclusion (bool): 是否启用结论阶段。
-            conclusion_model (BaseChatModel): 用于生成结论的模型。
-            conclusion_prompt (str): 结论生成的提示。
-            conclusion_question (Callable): 获取结论问题的函数。
         """
         self.enable_fixing = enable_fixing
         self.enable_conclusion = enable_conclusion
@@ -92,10 +87,6 @@ class ActionStage(BaseStage):
         super().__init__(prompt,
                          chat_model,
                          self_consistency_times=self_consistency_times)
-
-    @property
-    def stage_input_func(self):
-        return self._stage_input_func
 
     def _initialize_prompt(self, prompt: str) -> PromptTemplate:
         """
@@ -248,15 +239,7 @@ class ActionStage(BaseStage):
         # 解析生成的响应以确定是否需要调用工具
         action = self.tool_parser.parse(final_output)
 
-        # 考虑到Thinking Stage 与 Tool Stage的交互, 本项目中不允许使用无参数输入的Tool
-        if not action.tool_input:
-            action.tool_input = final_output
-
-        observation = execute_action(self.tools, action)
-
-        # 总结观察的数据
-        observation = asyncio.run(self.conclusion_observation(observation))
-        return observation
+        return action
 
     @staticmethod
     def __chinese_friendly(string: str) -> str:
@@ -329,14 +312,3 @@ class ActionStage(BaseStage):
             repaired_outputs = await asyncio.gather(*tasks)
 
         return repaired_outputs, total_attempt
-
-    async def conclusion_observation(self, observation: str) -> str:
-        if not self.enable_conclusion:
-            return observation
-        _prompt = self.conclusion_prompt
-        _question = self.get_node_details()
-
-        prompt_template = self._initialize_conclusion_prompt(_prompt, observation, _question)
-        prompt_str = prompt_template.format_prompt().text
-
-        return await chat_with_model_str(self.conclusion_model, prompt_str, return_str=True)

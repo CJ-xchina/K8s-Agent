@@ -20,7 +20,6 @@ class Node:
         return [target for _, target in self.transitions]
 
 
-
 class Graph:
     def __init__(self, start_node_id, json_source):
         """
@@ -117,3 +116,6 @@ class Graph:
                 print(f"Node ID: {node_id}")
         else:
             print("No isolated nodes found.")
+
+    def get_graph_obj(self):
+        return self

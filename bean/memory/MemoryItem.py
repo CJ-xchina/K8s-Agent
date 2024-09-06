@@ -102,7 +102,7 @@ class MemoryItem:
 
     async def run_action_and_update(self, get_graph_func: Callable, llm_extract_func: Callable):
         """
-        异步执行动作，更新 Observation 和每个 Node 的 Conclusion。
+        异步执行动作，使用 asyncio.gather 并行更新所有 Question 的 Conclusion。
         如果正则表达式为空，则调用 LLM 提取关键信息。
 
         Args:
@@ -116,40 +116,53 @@ class MemoryItem:
         # 获取当前最新图表信息
         current_graph_obj = get_graph_func()
 
-        # 准备并发任务队列
+        # 创建并发任务列表
         tasks = []
-        node_mapping = []  # 用于追踪任务和 Node 实例的映射
 
+        # 遍历 question 和对应的 node_ids
         for question, node_ids in self.question_node_pair.question_node_map.items():
-            for node_id in node_ids:
-                # 获取节点对象（Node 实例）
-                node_obj = current_graph_obj.get_node(node_id)
+            # 对每个 question，处理其 node_ids
+            tasks.append(
+                self._process_question_node_ids(result, question, node_ids, current_graph_obj, llm_extract_func))
 
-                if node_obj.regex:
-                    # 使用正则表达式进行匹配
-                    task = self.process_regex(result, node_obj.regex)
-                else:
-                    # 如果没有正则表达式，调用 LLM 提取关键信息
-                    if llm_extract_func:
-                        task = llm_extract_func(result, question)
-                    else:
-                        task = self.handle_no_llm_func(question)
-
-                tasks.append(task)
-                node_mapping.append(node_obj)
-
-        # 并发执行任务并收集结果
-        conclusions = await asyncio.gather(*tasks, return_exceptions=True)
-
-        # 更新每个 Node 对应的结论
-        for node_obj, conclusion in zip(node_mapping, conclusions):
-            if isinstance(conclusion, Exception):
-                node_obj.conclusion = f"发生错误: {str(conclusion)}"
-            else:
-                node_obj.conclusion = conclusion
+        # 并发执行所有任务
+        await asyncio.gather(*tasks)
 
         # 更新最后执行时间
         self.timestamp = datetime.now()
+
+    async def _process_question_node_ids(self, result: str, question: str, node_ids: Set[str], current_graph_obj: Any,
+                                         llm_extract_func: Callable):
+        """
+        处理单个 Question 及其所有 Node IDs，获取结论并更新对应的 Node 对象。
+
+        Args:
+            result (str): 执行动作的结果。
+            question (str): 问题字符串。
+            node_ids (Set[str]): 与问题关联的节点ID集合。
+            current_graph_obj (Any): 图表对象，用于获取节点。
+            llm_extract_func (Callable): 提供的 LLM 提取关键信息的异步函数。
+        """
+        # 获取 node_ids 集合中的第一个节点来处理
+        first_node_id = next(iter(node_ids))
+        first_node_obj = current_graph_obj.get_node(first_node_id)
+
+        # 处理正则或 LLM 提取
+        if first_node_obj.regex:
+            # 使用正则表达式进行匹配
+            conclusion = await self.process_regex(result, first_node_obj.regex)
+        else:
+            # 如果没有正则表达式，调用 LLM 提取关键信息
+            if llm_extract_func:
+                conclusion = await llm_extract_func(result, question)
+            else:
+                conclusion = await self.handle_no_llm_func(question)
+
+        # 将结论应用到所有相同问题的节点
+        for node_id in node_ids:
+            node_obj = current_graph_obj.get_node(node_id)
+            node_obj.conclusion = conclusion
+
 
     def to_dict(self) -> Dict[str, Any]:
         """
