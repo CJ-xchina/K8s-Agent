@@ -4,13 +4,14 @@ from typing import List, Dict, Optional
 
 class Node:
     def __init__(self, node_id: str, node_type: str, question: Optional[str] = None,
-                 regex: Optional[str] = None, action: Optional[str] = None):
+                 regex: Optional[str] = None, action: Optional[str] = None, conclusion: Optional[str] = None, ):
         self.node_id = node_id
         self.node_type = node_type
         self.question = question
         self.regex = regex
         self.action = action
         self.transitions = []
+        self.conclusion = conclusion
 
     def add_transition(self, condition_value: str, target_node: str):
         self.transitions.append((condition_value, target_node))

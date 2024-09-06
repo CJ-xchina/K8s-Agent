@@ -1,4 +1,4 @@
-from typing import List, Callable
+from typing import List, Callable, Union
 
 from langchain.agents import AgentOutputParser
 from langchain_core.agents import AgentAction, AgentFinish
@@ -36,7 +36,7 @@ def extract_tool_signature(output: str, tool_parser: AgentOutputParser):
     return output
 
 
-def execute_action(action: AgentAction, tools: BaseTool = None) -> str:
+def execute_action(action: Union[str, AgentAction], tools: BaseTool = None) -> str:
     """
     根据解析出的动作执行相应的工具。
 
@@ -49,6 +49,10 @@ def execute_action(action: AgentAction, tools: BaseTool = None) -> str:
     """
     if tools is None:
         tools = get_all_tools()
+
+    # 如果action为字符串, 默认调用`kubectl_command` 执行这条kubectl指令
+    if isinstance(action, str):
+        action = AgentAction(tool="kubectl_command", tool_input=action, log="")
     observation = ""  # 用于存储工具执行后的观察结果
 
     for tool in tools:
