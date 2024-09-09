@@ -36,18 +36,27 @@ class baseMemory(object):
     def store_data(self, item: MemoryItem):
         """
         存储 MemoryItem 到优先队列中，并使用 action 作为键来标识。
-        如果 action 已经存在，则覆盖旧的 MemoryItem。
+        如果 action 已经存在，则在该 action 的 QuestionNodePair 中添加新的 question 和 node_ids。
 
         Args:
             item (MemoryItem): 要存储的 MemoryItem 对象。
         """
-        # 如果该 action 已经存在，则先删除旧的 MemoryItem
+        # 如果该 action 已经存在，则更新旧的 MemoryItem 而不是直接替换
         if item.action in self.action_map:
-            self.remove_memory_item_by_action(item.action)
+            existing_item = self.action_map[item.action]
 
-        # 将新的 MemoryItem 添加到优先队列（存储 timestamp 和 action）并更新 action_map
+            # 将新的 question 和 node_ids 添加到现有的 MemoryItem 中
+            for question, node_ids in item.question_node_pair.question_node_map.items():
+                existing_item.add_question_node_pair(question, node_ids)
+
+            # 更新现有的 MemoryItem 的 timestamp
+            existing_item.timestamp = item.timestamp
+        else:
+            # 如果不存在这个 action，直接添加新的 MemoryItem
+            self.action_map[item.action] = item
+
+        # 将 MemoryItem 添加到优先队列（使用负时间戳确保最新时间在前）
         heapq.heappush(self.memory_store, (-item.timestamp.timestamp(), item.action))
-        self.action_map[item.action] = item
 
     def refresh_all_items(self):
         """
@@ -184,15 +193,7 @@ class baseMemory(object):
         return "\n".join(summary)
 
     def get_node_conclusion(self, node_id: str) -> str:
-        """
-        获取指定 NodeID 的 Conclusion。假设这个功能从外部数据源中获取结论。
-        这里可以根据你的需求进行自定义实现。
+        graph = self.get_graph_func
 
-        Args:
-            node_id (str): 要查找的 NodeID。
+        return graph.get_conclusion_by_id(node_id)
 
-        Returns:
-            str: 返回 Node 的 Conclusion。
-        """
-        # 模拟获取 Node 的结论，实际实现时可能需要从图结构中获取
-        return "Sample Conclusion"  # 这里假设返回一个示例结论

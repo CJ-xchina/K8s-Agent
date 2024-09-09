@@ -102,7 +102,7 @@ def kubectl_command(command: str) -> str:
     执行任意 `kubectl` 命令并返回结果。
 
     Args:
-        command : 需要执行的 `kubectl` 命令（例如: "get pods -n default"）。
+        command : 需要执行的一条完整的 `kubectl` 命令（例如: "kubectl get pods -n default"）。
 
     Returns:
         str: `kubectl` 命令的输出结果，格式为纯文本。

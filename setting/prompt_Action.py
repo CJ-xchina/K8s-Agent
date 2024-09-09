@@ -75,12 +75,6 @@ FORMAT_INSTRUCTIONS = """
     "var2": "value2"
   }
 }
-
-如果 Final Answer 作为动作被你输出，那么也就意味着根据你的思考现在的工作已经完成了，如果工作没有完成则不允许输出下面的内容：
-{
-  "action": "Final Answer",
-  "action_input": ""
-}
 """
 
 NAIVE_FIX = """

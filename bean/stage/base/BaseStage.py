@@ -104,7 +104,7 @@ class BaseStage:
 
         return outputs
 
-    def _step(self, variables=None) -> str:
+    def step(self, variables=None) -> str:
         """
         生成最终的对话响应，并选择最常见的输出作为最终输出。
 

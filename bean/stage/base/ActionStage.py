@@ -1,7 +1,7 @@
 import asyncio
 import json
 from collections import Counter
-from typing import List, Callable, Any
+from typing import List, Any
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.prompts import PromptTemplate
@@ -12,7 +12,7 @@ from bean.parser.BaseOutputParser import BaseOutputParser
 from bean.stage.base.BaseStage import BaseStage
 from setting.prompt_Action import NAIVE_FIX, MAIN_PROMPT, CONCLUSION
 from utils.chat import chat_with_model_str
-from utils.tools import extract_tool_signature, validate_tool_input
+from utils.tools import extract_tool_signature, validate_tool_input, execute_action
 
 
 class ActionStage(BaseStage):
@@ -43,18 +43,16 @@ class ActionStage(BaseStage):
 
     def __init__(self,
                  prompt: str,
-
                  tools: List[BaseTool],
                  tool_parser: BaseOutputParser,
                  chat_model: BaseChatModel = None,
                  fixing_model: BaseChatModel = None,
                  self_consistency_times: int = 1,
                  enable_fixing: bool = False,
-                 enable_conclusion: bool = False,
-                 node_details_func: Callable = None,
                  fixing_prompt: str = None,
                  fixing_num: int = 3,
-                 dynamic_fixing: bool = True):
+                 dynamic_fixing: bool = True,
+                 execute_action: bool = True, ):
         """
         初始化 ActionStage 类。
 
@@ -69,14 +67,12 @@ class ActionStage(BaseStage):
             fixing_prompt (str): 用于修复输出的模型的提示词。
             fixing_num (int): 修复次数。
             dynamic_fixing (bool): 是否启用动态修复。
-            enable_conclusion (bool): 是否启用结论阶段。
         """
         self.enable_fixing = enable_fixing
-        self.enable_conclusion = enable_conclusion
         self.tools = tools
         self.tool_parser = tool_parser
         self.chat_model = chat_model if chat_model is not None else self.default_model()
-        self.get_node_details = node_details_func
+        self.execute_action = execute_action
         if enable_fixing:
             self.fixing_model = fixing_model if fixing_model is not None else chat_model
             self.fixing_prompt = fixing_prompt if fixing_prompt is not None else self.default_fixing_prompt()
@@ -106,13 +102,11 @@ class ActionStage(BaseStage):
 
         # 初始化参数字典
         partial_kwargs = {
-            "tools": self.tool_parser.render_text_description_and_args(self.tools),  # 渲染工具描述
             "format_instructions": self.__chinese_friendly(self.tool_parser.get_format_instructions()),  # 处理格式说明
         }
 
-        # 如果 prompt 中包含 'node_details'，则添加 'node_details' 参数
-        if "node_details" in prompt:
-            partial_kwargs["node_details"] = self.get_node_details()
+        if "tools" in prompt:
+            partial_kwargs["tools"] = self.tool_parser.render_text_description_and_args(self.tools)
 
         return PromptTemplate.from_template(prompt, template_format="jinja2").partial(**partial_kwargs)
 
@@ -225,21 +219,28 @@ class ActionStage(BaseStage):
         selected_output = matched_outputs[middle_index]
         return selected_output
 
-    def _step(self, variables=None):
+    def step(self, variables=None):
         """
-        调用父类的 _step 方法生成对话输出，并根据输出执行相应的工具操作，返回生成的响应。
+        调用父类的 step 方法生成对话输出，并根据输出执行相应的工具操作，返回生成的响应。
 
         Args:
             variables (dict): 用于注入到 PromptTemplate 中的参数字典。
 
         """
-        # 调用父类的 _step 方法获取初步输出
-        final_output = super()._step(variables)
+        # 调用父类的 step 方法获取初步输出
+        final_output = super().step(variables)
 
         # 解析生成的响应以确定是否需要调用工具
         action = self.tool_parser.parse(final_output)
 
-        return action
+        observation = ""
+        if self.execute_action:
+            observation = execute_action(action, self.tools)
+
+        if observation == "":
+            observation = final_output
+
+        return action, observation
 
     @staticmethod
     def __chinese_friendly(string: str) -> str:

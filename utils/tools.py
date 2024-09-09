@@ -28,6 +28,9 @@ def extract_tool_signature(output: str, tool_parser: AgentOutputParser):
 
     if isinstance(parsed_output, (AgentAction, AgentFinish)):
         # 将工具输入的键和值都转换为小写
+        if isinstance(parsed_output.tool_input, str):
+            return parsed_output.tool, parsed_output.tool_input.lower()
+
         lowercase_tool_input = {
             k.lower(): v.lower() if isinstance(v, str) else v
             for k, v in parsed_output.tool_input.items()
@@ -36,9 +39,9 @@ def extract_tool_signature(output: str, tool_parser: AgentOutputParser):
     return output
 
 
-def execute_action(action: Union[str, AgentAction], tools: BaseTool = None) -> str:
+def execute_action(action: Union[str, AgentAction], tools: List[BaseTool] = None) -> str:
     """
-    根据解析出的动作执行相应的工具。
+    根据解析出的动作执行相应的工具。如果没有匹配的工具, 默认执行Kubectl命令行工具
 
     参数:
         tools (list[BaseTool]): 工具列表，每个工具都具有 `name` 和 `run` 方法。
@@ -55,12 +58,15 @@ def execute_action(action: Union[str, AgentAction], tools: BaseTool = None) -> s
         action = AgentAction(tool="kubectl_command", tool_input=action, log="")
     observation = ""  # 用于存储工具执行后的观察结果
 
+    run_any_tools = False
+
     for tool in tools:
         if tool.name == action.tool:
             try:
                 print(f"执行工具：{tool.name}\n "
                       f"传入参数: {action.tool_input}")
                 observation = tool.run(action.tool_input)
+                run_any_tools = True
                 print(f"执行结果: {observation}\n\n\n")
                 break
             except Exception as e:
@@ -70,7 +76,7 @@ def execute_action(action: Union[str, AgentAction], tools: BaseTool = None) -> s
                                f"本次传入的参数为: {action.tool_input}, 这是个错误名称的参数!!你应该传入的参数为: {tool.args}")
                 raise ValidationError(observation)
 
-    if observation == "":
+    if run_any_tools is not True:
         available_tools = [tool.name for tool in tools]
         observation = f"工具的名称错误, 没有找到名为 '{action.tool}' 的工具。可用的工具包括: {', '.join(available_tools)}。请你注意是否是拼写错误或者是大小写错误！"
         raise ValidationError(observation)

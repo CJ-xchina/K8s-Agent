@@ -4,6 +4,7 @@ from dataclasses import field, dataclass
 from datetime import datetime
 from typing import Any, Dict, Optional, Union, Callable, Set
 
+from utils.str_utils import process_regex
 from utils.tools import execute_action
 
 
@@ -114,7 +115,7 @@ class MemoryItem:
         self.observation = result
 
         # 获取当前最新图表信息
-        current_graph_obj = get_graph_func()
+        current_graph_obj = get_graph_func
 
         # 创建并发任务列表
         tasks = []
@@ -150,7 +151,7 @@ class MemoryItem:
         # 处理正则或 LLM 提取
         if first_node_obj.regex:
             # 使用正则表达式进行匹配
-            conclusion = await self.process_regex(result, first_node_obj.regex)
+            conclusion = await process_regex(result, first_node_obj.regex)
         else:
             # 如果没有正则表达式，调用 LLM 提取关键信息
             if llm_extract_func:
@@ -202,22 +203,7 @@ class MemoryItem:
             timestamp=timestamp
         )
 
-    async def process_regex(self, result: str, regex: str) -> str:
-        """
-        使用正则表达式处理结果，并返回匹配的结论。
 
-        Args:
-            result (str): 动作执行的结果。
-            regex (str): 用于匹配的正则表达式。
-
-        Returns:
-            str: 正则匹配到的结论，或者返回匹配失败信息。
-        """
-        match = re.search(regex, result)
-        if match:
-            return match.group(0)
-        else:
-            return f"正则表达式匹配失败: '{result}' 配置的正则: {regex}"
 
     async def handle_no_llm_func(self, question: str) -> str:
         """
@@ -264,6 +250,7 @@ class MemoryItemFactory:
             description=description,
             question_node_pair=question_node_pair,
             timestamp=datetime.now()
+
         )
 
         return memory_item
