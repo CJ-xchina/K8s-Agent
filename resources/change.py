@@ -1,59 +1,67 @@
 import json
 
-# 原始 JSON 数据
-json_data = {
-    "nodes": [
-        # 这里插入你给定的JSON数据
-    ]
-}
+# 从指定文件中读取 JSON 数据
+def read_json(input_file):
+    with open(input_file, 'r', encoding='utf-8') as file:
+        return json.load(file)
 
-# 目标格式转换函数
-def process_json_data(json_data):
-    processed_nodes = []
-    processed_edges = []
+# 将处理后的 JSON 数据写入指定文件
+def write_json(output_file, data):
+    with open(output_file, 'w', encoding='utf-8') as file:
+        json.dump(data, file, ensure_ascii=False, indent=4)
 
-    for node in json_data.get("nodes", []):
-        # 处理节点信息
-        processed_node = {
-            "id": node["id"],
-            "question": node.get("if_statement"),
-            "regex": node.get("regex"),
-            "action": node.get("action")
-        }
+# 示例输入输出文件路径
+input_file = 'graph.json'  # 输入文件路径
+output_file = 'pod-graph.json'  # 输出文件路径
 
-        # 添加节点信息到 nodes 列表
-        processed_nodes.append(processed_node)
+# 从输入文件读取数据
+data = read_json(input_file)
 
-        # 处理边信息 (true_transition 和 false_transition)
-        if node.get("true_transition"):
-            processed_edges.append({
-                "source": node["id"],
-                "target": node["true_transition"],
-                "value": "true"
-            })
-        if node.get("false_transition"):
-            processed_edges.append({
-                "source": node["id"],
-                "target": node["false_transition"],
-                "value": "false"
-            })
+# 将节点转换为字典，方便访问
+node_ids = {node["id"]: node for node in data["nodes"]}
 
-    return {
-        "nodes": processed_nodes,
-        "edges": processed_edges
+# 找出有出边和入边的节点（用于判断起始节点和终止节点）
+nodes_with_outgoing_edges = {edge["source"] for edge in data["edges"]}
+nodes_with_incoming_edges = {edge["target"] for edge in data["edges"]}
+
+# 设置简单的网格布局来分配节点位置
+x, y = 0, 0
+step_x, step_y = 200, 200
+
+# 1. 处理节点类型和位置，并添加 'data' 字段
+for node in data["nodes"]:
+    node["data"] = {
+        "question": node.get("question", "") or "",
+        "regex": node.get("regex", "") or "",
+        "action": node.get("action", "") or "",
+        "description": node.get("description", "") or ""
+    }
+    del node["question"], node["regex"], node["action"]
+
+    # 判断节点类型：起始节点、终止节点、默认节点
+    if node["id"] not in nodes_with_incoming_edges:  # 没有入边的节点是起始节点
+        node["type"] = "input"
+    elif node["id"] not in nodes_with_outgoing_edges:  # 没有出边的节点是终止节点
+        node["type"] = "output"
+    else:
+        node["type"] = "default"
+
+    # 设置节点的位置信息
+    node["position"] = {"x": x, "y": y}
+    x += step_x  # 每个节点在 x 方向增加间距
+    if x > 800:  # 如果 x 超过限制，重置 x 并移动到下一行
+        x = 0
+        y += step_y
+
+# 2. 处理边：为每个边添加唯一的 ID，添加 'data' 字段并将原来的 'value' 赋值给 data['label']
+for edge in data["edges"]:
+    edge["id"] = f'{edge["source"]}->{edge["target"]}'
+    edge["data"] = {
+        "label": edge.pop("value")  # 将 'value' 移到 'data' 的 'label' 字段中
     }
 
-# 加载 JSON 数据（假设文件路径为 pod_graph.json）
-json_source = "./pod_graph.json"
-with open(json_source, 'r', encoding='utf-8') as file:
-    json_data = json.load(file)
+# 将处理后的数据写入输出文件
+write_json(output_file, data)
 
-# 处理后的数据
-processed_data = process_json_data(json_data)
-
-# 将结果存储到 graph.json 文件中
-output_file = "./graph.json"
-with open(output_file, 'w', encoding='utf-8') as f:
-    json.dump(processed_data, f, ensure_ascii=False, indent=4)
-
-print(f"Processed data has been saved to {output_file}")
+# 输出成功信息
+print(f'处理后的 JSON 数据已保存到 {output_file}')
