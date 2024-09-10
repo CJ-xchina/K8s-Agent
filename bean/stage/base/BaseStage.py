@@ -118,6 +118,7 @@ class BaseStage:
         if variables is None:
             variables = {}
 
+
         # 生成初步的 self_consistency 数组
         outputs = asyncio.run(self._step_with_sct(variables))
 

@@ -59,6 +59,8 @@ for edge in data["edges"]:
     edge["data"] = {
         "label": edge.pop("value")  # 将 'value' 移到 'data' 的 'label' 字段中
     }
+    edge["type"] = "default"
+    edge["updatable"] = True
 
 # 将处理后的数据写入输出文件
 write_json(output_file, data)

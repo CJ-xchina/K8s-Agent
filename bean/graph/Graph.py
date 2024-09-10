@@ -6,7 +6,7 @@ from bean.graph.Node import Node
 
 
 class Graph:
-    def __init__(self, json_source: Optional[Dict]):
+    def __init__(self, json_source: str):
         self.nodes = {}
         self.edges = []
         self.start_node_id = "1"
@@ -19,9 +19,8 @@ class Graph:
                     json_data = json.load(file)
                     self.load_from_json(json_data)
             else:
-                # 否则假设传入的是字典
-                self.load_from_json(json_source)
-
+                json_map = json.loads(json_source)
+                self.load_from_json(json_map)
     def add_node(self, node: Node):
         """
         将节点添加到图中。
@@ -112,7 +111,9 @@ class Graph:
                 source_node=edge_data["source"],
                 target_node=edge_data["target"],
                 edge_type=edge_data.get("type", "default"),
-                condition_value=edge_data["data"]["label"]
+                condition_value=edge_data["data"]["label"],
+                source_Handle=edge_data["sourceHandle"],
+                target_Handle=edge_data["targetHandle"]
             )
             self.add_edge(edge)
 

@@ -3,12 +3,16 @@ from typing import Optional
 
 class Edge:
     def __init__(self, edge_id: str, source_node: str, target_node: str, edge_type: str,
-                 condition_value: Optional[str] = ""):
+                 condition_value: Optional[str] = "", source_Handle: Optional[str] = None,
+                 target_Handle: Optional[str] = None):
         self.edge_id = edge_id
         self.source_node = source_node
         self.target_node = target_node
         self.edge_type = edge_type
         self.condition_value = condition_value  # Store condition_value internally
+        self.updatable = True
+        self.sourceHandle = source_Handle
+        self.targetHandle = target_Handle
 
     def to_dict(self):
         """
@@ -21,5 +25,8 @@ class Edge:
             "target": self.target_node,
             "data": {
                 "label": self.condition_value  # Construct data['label'] from condition_value
-            }
+            },
+            "updatable": self.updatable,
+            "sourceHandle": self.sourceHandle,
+            "targetHandle": self.targetHandle
         }

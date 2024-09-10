@@ -40,8 +40,8 @@ class Pod:
         }
 
 
-class PodAgent():
-    def __init__(self, path: str = "", pod: Pod = None):
+class PodAgent:
+    def __init__(self, json_str: str = "", pod: Pod = None):
         """
         初始化 PodAgent 对象，创建 Graph 和 Memory 的实例，并初始化各个阶段的处理逻辑。
 
@@ -49,7 +49,7 @@ class PodAgent():
             path (str): 图的文件路径。
             pod (Pod): 传入的Pod对象。
         """
-        self.graph = Graph("1", path)  # 初始化图结构，传入路径
+        self.graph = Graph(json_str)  # 初始化图结构，传入路径
         self.memory = baseMemory(60, self.graph.get_graph_obj())  # 创建一个 baseMemory 实例，用于存储和管理 MemoryItem
         self.pod = pod  # 传入的Pod对象
 
@@ -142,15 +142,3 @@ class PodAgent():
             # 将 MemoryItem 存储到 memory 中
             self.memory.store_data(item)
 
-
-def main():
-    """
-    主函数，初始化 PodAgent 并执行操作。
-    """
-    pod = Pod(name="crash-loop", namespace="k8sgpt-test")  # 创建一个Pod实例
-    pod_agent = PodAgent(path="./resources/graph.json", pod=pod)  # 创建PodAgent
-    pod_agent.execute()  # 执行PodAgent逻辑
-
-
-if __name__ == "__main__":
-    main()  # 运行主函数
