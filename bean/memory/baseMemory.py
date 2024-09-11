@@ -1,8 +1,7 @@
 import asyncio
-import json
+import heapq
 import threading
 import time
-import heapq
 from typing import Any, Dict, Optional, Callable, List, Tuple
 
 from bean.memory.MemoryItem import MemoryItem
@@ -96,10 +95,10 @@ class baseMemory(object):
             Dict[str, Any]: 包含提取字段或完整 MemoryItem 的字典。
         """
         if not fields:
-            return item.to_dict()
+            return item.to_dict(self.get_graph_func)
 
         extracted_data = {}
-        item_dict = item.to_dict()
+        item_dict = item.to_dict(self.get_graph_func)
 
         for field in fields:
             if field in item_dict:
@@ -124,7 +123,7 @@ class baseMemory(object):
         refresh_thread = threading.Thread(target=refresh_loop, daemon=True)
         refresh_thread.start()
 
-    def get_data(self, fields: Optional[List[str]] = None) -> str:
+    def get_data(self, fields: Optional[List[str]] = None) -> list[dict[str, Any]]:
         """
         获取存储的数据，并根据提供的字段返回数据，返回 JSON 格式字符串。
         如果未指定 fields，则返回所有 MemoryItem 数据。
@@ -141,7 +140,7 @@ class baseMemory(object):
             result.append(self._extract_fields(item, fields))
 
         # 将结果转换为 JSON 格式字符串
-        return json.dumps(result)
+        return result
 
     def get_memory_item_by_action(self, action: str) -> MemoryItem:
         """

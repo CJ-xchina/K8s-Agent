@@ -1,10 +1,14 @@
+from datetime import datetime
+
 from langchain_openai import ChatOpenAI
 
 from bean.graph.Graph import Graph
+from bean.graph.Node import NodeStatusEnum
 from bean.memory.MemoryItem import MemoryItemFactory
 from bean.memory.baseMemory import baseMemory
 from bean.parser.StructuredChatOutputParser import StructuredChatOutputParser
 from bean.parser.StructuredConclusionOuputParser import StructuredConclusionOutputParser
+from bean.resources.pod import Pod
 from bean.stage.base.ActionStage import ActionStage
 from setting.prompt_Action import NAIVE_FIX
 from setting.prompt_Extract import EXTRACT
@@ -12,32 +16,6 @@ from setting.prompt_Thinking import THINKING_PROMPT
 from tools.k8s_tools import kubectl_command
 from utils.str_utils import process_regex
 from utils.tools import execute_action
-
-
-class Pod:
-    def __init__(self, name: str, namespace: str):
-        """
-        初始化Pod对象，并传入基础信息。
-
-        参数:
-            name (str): Pod的名称。
-            namespace (str): Pod所在的命名空间。
-        """
-        self.name = name
-        self.namespace = namespace
-
-    def get_info(self) -> dict:
-        """
-        返回Pod基础信息的字典。
-
-        返回:
-            dict: 包含Pod基础信息的字典。
-        """
-        return {
-            "resource_type": "Kubernetes Pod",
-            "name": self.name,
-            "namespace": self.namespace
-        }
 
 
 class PodAgent:
@@ -89,12 +67,16 @@ class PodAgent:
         )
 
     def execute(self):
+        current_node = self.graph.get_current_node()  # 获取当前节点
+
         """
         执行PodAgent的主要逻辑，通过图中的节点进行决策和提取，存储数据到内存中。
         """
         while not self.graph.is_current_node_terminal():  # 当当前节点不是终止节点时，继续执行
-            current_node = self.graph.get_current_node()  # 获取当前节点
             question = current_node.question
+
+            current_node.status = NodeStatusEnum.EXECUTING
+            current_node.start_time = datetime.now()
 
             if current_node.action == "":
                 # 如果当前节点没有指定 action，则通过思考阶段进行决策
@@ -111,10 +93,10 @@ class PodAgent:
                 current_node.action, observation = self.thinking_stage.step(input_map)
 
             # 执行指定的 action，并获取观察结果
-            observation = execute_action(current_node.action)
+            observation = execute_action(current_node.action, pod=self.pod)
 
             # 如果当前节点存在正则表达式，使用正则表达式处理观察结果
-            if current_node.regex is not None:
+            if current_node.regex is not None and current_node.regex is not "":
                 conclusion = process_regex(observation, current_node.regex)
             else:
                 input_map = {
@@ -141,4 +123,13 @@ class PodAgent:
 
             # 将 MemoryItem 存储到 memory 中
             self.memory.store_data(item)
+            current_node.start_time = datetime.now()
 
+            # 更新当前节点
+            current_node = self.graph.get_current_node()  # 获取当前节点
+
+        final_reason = current_node.action
+
+        json_map = self.memory.get_data()
+
+        print("ok")

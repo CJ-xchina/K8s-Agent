@@ -1,9 +1,9 @@
 import asyncio
-import re
 from dataclasses import field, dataclass
 from datetime import datetime
 from typing import Any, Dict, Optional, Union, Callable, Set
 
+from bean.graph.Graph import Graph
 from utils.str_utils import process_regex
 from utils.tools import execute_action
 
@@ -41,14 +41,33 @@ class QuestionNodePair:
             self.question_node_map[question] = node_ids
             print(f"新增问题 '{question}'，以及其对应的 node_ids: {node_ids}")
 
-    def to_dict(self) -> dict:
+    def to_dict(self, current_graph_obj: Graph) -> dict:
         """
         将 QuestionNodePair 对象转换为字典格式，便于存储和序列化。
+        对于每个 question，返回 question 作为 key，node_ids 和对应 conclusion 作为值。
+
+        Args:
+            current_graph_obj (Any): 用于获取节点对象并提取 conclusion 的图表对象。
 
         Returns:
-            dict: 包含 question 与 node_ids 映射的字典。
+            dict: 包含 question、node_ids 及其对应 conclusion 的字典。
         """
-        return {question: list(node_ids) for question, node_ids in self.question_node_map.items()}
+        question_conclusion_map = {}
+        for question, node_ids in self.question_node_map.items():
+            question_conclusions = {
+                "question": question,
+                "nodes": []
+            }
+            for node_id in node_ids:
+                # 通过 current_graph_obj 获取每个 node_id 对应的节点，并获取其 conclusion
+                node_obj = current_graph_obj.get_node(node_id)
+                question_conclusions["nodes"].append({
+                    "node_id": node_id,
+                    "conclusion": node_obj.conclusion if node_obj else None
+                })
+            question_conclusion_map["conclusions"] = question_conclusions
+
+        return question_conclusion_map
 
     @staticmethod
     def from_dict(data: dict) -> 'QuestionNodePair':
@@ -63,6 +82,7 @@ class QuestionNodePair:
         """
         question_node_map = {question: set(node_ids) for question, node_ids in data.items()}
         return QuestionNodePair(question_node_map=question_node_map)
+
 
 
 class MemoryItem:
@@ -164,19 +184,19 @@ class MemoryItem:
             node_obj = current_graph_obj.get_node(node_id)
             node_obj.conclusion = conclusion
 
-
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, get_graph_func: Callable) -> Dict[str, Any]:
         """
         将 MemoryItem 对象转换为字典格式，便于存储和序列化。
 
         Returns:
             Dict[str, Any]: 包含动作、观察、描述、问题和时间戳的字典。
         """
+        graph_obj = get_graph_func
         return {
             "action": self.action,
             "observation": self.observation,
             "description": self.description,
-            "question_node_pairs": self.question_node_pair.to_dict(),
+            "question_node_pairs": self.question_node_pair.to_dict(graph_obj),
             "timestamp": self.timestamp.isoformat(),
         }
 
@@ -202,7 +222,6 @@ class MemoryItem:
             question_node_pair=question_node_pair,
             timestamp=timestamp
         )
-
 
 
     async def handle_no_llm_func(self, question: str) -> str:
