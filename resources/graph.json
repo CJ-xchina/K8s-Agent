@@ -1,0 +1,478 @@
+{
+    "nodes": [
+        {
+            "id": "1",
+            "question": "该 Pod 是否处于 PENDING 状态？",
+            "regex": null,
+            "action": "kubectl get pod crash-loop -n k8sgpt-test"
+        },
+        {
+            "id": "2",
+            "question": "检查集群是否已满？判断当前集群的资源是否已经耗尽，无法调度新的 Pod。",
+            "regex": null,
+            "action": " kubectl describe pod <pod-name>"
+        },
+        {
+            "id": "3",
+            "question": null,
+            "regex": null,
+            "action": "集群资源已满， 需要提供更大的集群来保证Pod的正常运行"
+        },
+        {
+            "id": "4",
+            "question": "是否触发了 ResourceQuota 限制？确认是否超出了命名空间的资源配额。",
+            "regex": null,
+            "action": "检查 ResourceQuota 限制"
+        },
+        {
+            "id": "5",
+            "question": null,
+            "regex": null,
+            "action": "放宽 ResourceQuota 限制"
+        },
+        {
+            "id": "6",
+            "question": "该 Pod 是否在运行 (Running) 状态？",
+            "regex": null,
+            "action": ""
+        },
+        {
+            "id": "7",
+            "question": "是否正在挂载一个处于 PENDING 状态的 PersistentVolumeClaim？",
+            "regex": null,
+            "action": "kubectl get pvc & kubectl describe pvc <pvc-name>"
+        },
+        {
+            "id": "8",
+            "question": null,
+            "regex": null,
+            "action": "修复应用中的问题"
+        },
+        {
+            "id": "9",
+            "question": "Pods 是否已就绪？检查是否容器都通过了就绪探针（Readiness Probe）的检查。",
+            "regex": null,
+            "action": "检查该 pod 是否处于 READY 状态？"
+        },
+        {
+            "id": "10",
+            "question": "容器是否过快退出？检查容器是否在启动后迅速崩溃并退出。",
+            "regex": null,
+            "action": "kubectl logs <pod-name> --previous"
+        },
+        {
+            "id": "11",
+            "question": "Readiness probe 是否失败？确定容器是否由于就绪探针失败而未能就绪。",
+            "regex": null,
+            "action": "kubectl describe pod <pod-name>"
+        },
+        {
+            "id": "12",
+            "question": null,
+            "regex": null,
+            "action": "修复集群的Readiness probe"
+        },
+        {
+            "id": "13",
+            "question": "Pod 状态是否为 ImagePullBackOff？检查镜像是否无法拉取导致 Pod 失败。",
+            "regex": null,
+            "action": "kubectl describe pod <pod-name>"
+        },
+        {
+            "id": "14",
+            "question": null,
+            "regex": null,
+            "action": "修复 Readiness probe"
+        },
+        {
+            "id": "15",
+            "question": null,
+            "regex": null,
+            "action": "Pod 处于未知状态"
+        },
+        {
+            "id": "16",
+            "question": "镜像名称是否正确？检查镜像名称是否有拼写错误或配置错误。",
+            "regex": null,
+            "action": "检查Pod中使用的镜像名称"
+        },
+        {
+            "id": "17",
+            "question": "Pod 状态是否为 CrashLoopBackOff？检查容器是否不断重启并进入 CrashLoopBackOff 状态。",
+            "regex": null,
+            "action": "检查 Pod 是否处于 CrashLoopBackOff 状态"
+        },
+        {
+            "id": "18",
+            "question": "Pod 状态是否为 CrashLoopBackOff？检查容器是否不断重启并进入 CrashLoopBackOff 状态。",
+            "regex": null,
+            "action": "检查 Pod 是否处于 RunContainerError 的状态"
+        },
+        {
+            "id": "19",
+            "question": null,
+            "regex": null,
+            "action": "问题可能出在挂载卷上。"
+        },
+        {
+            "id": "20",
+            "question": null,
+            "regex": null,
+            "action": "请你咨询 StackOverflow"
+        },
+        {
+            "id": "21",
+            "question": null,
+            "regex": null,
+            "action": "修复镜像的名称"
+        },
+        {
+            "id": "22",
+            "question": "是否能查看应用的日志？判断是否可以通过日志诊断应用的问题。",
+            "regex": null,
+            "action": "kubectl logs <pod-name>"
+        },
+        {
+            "id": "23",
+            "question": null,
+            "regex": null,
+            "action": "修复 PersistentVolumeClaim"
+        },
+        {
+            "id": "24",
+            "question": "检查 Pod 是否被正确分配到节点。",
+            "regex": null,
+            "action": "kubectl get pods -o wide"
+        },
+        {
+            "id": "25",
+            "question": null,
+            "regex": null,
+            "action": "调度器 Scheduler 问题"
+        },
+        {
+            "id": "26",
+            "question": null,
+            "regex": null,
+            "action": "Kubelet 可能存在问题"
+        },
+        {
+            "id": "27",
+            "question": "检查镜像的标签是否是有效的？镜像的标签是否存在？",
+            "regex": null,
+            "action": "检查镜像的标签是否是有效的？镜像的标签是否存在？"
+        },
+        {
+            "id": "28",
+            "question": null,
+            "regex": null,
+            "action": "修复镜像的Tag标签"
+        },
+        {
+            "id": "29",
+            "question": "是否是从私有镜像处拉取镜像？",
+            "regex": null,
+            "action": "是否是从私有镜像处拉取镜像？"
+        },
+        {
+            "id": "30",
+            "question": null,
+            "regex": null,
+            "action": "你需要重新配置你的镜像，出错的原因是拉取一个私有的镜像"
+        },
+        {
+            "id": "31",
+            "question": null,
+            "regex": null,
+            "action": "问题可能出在 CRI 或 Kubelet 上。"
+        },
+        {
+            "id": "32",
+            "question": "你检查了日志并修复了崩溃的应用吗？",
+            "regex": null,
+            "action": "你检查了日志并修复了崩溃的应用吗？"
+        },
+        {
+            "id": "33",
+            "question": "你是否查看了日志并修复了崩溃的应用？检查是否通过日志找到并解决了应用中的问题。",
+            "regex": null,
+            "action": "修复崩溃的应用"
+        },
+        {
+            "id": "34",
+            "question": "DockerFile存在问题？",
+            "regex": null,
+            "action": "检查DockerFile是否存在问题"
+        },
+        {
+            "id": "35",
+            "question": null,
+            "regex": null,
+            "action": "你是否忘记了在 Dockerfile 中加入 CMD 指令？检查 Dockerfile 配置是否正确，尤其是 CMD 指令。"
+        },
+        {
+            "id": "36",
+            "question": "检查Pod 是否快速且经常重启？在Running 和 CashLoopBackoff 两个状态之间反复切换？",
+            "regex": null,
+            "action": "检查Pod 是否快速且经常重启？在Running 和 CashLoopBackoff 两个状态之间反复切换？"
+        },
+        {
+            "id": "37",
+            "question": null,
+            "regex": null,
+            "action": "修复 liveness probe"
+        },
+        {
+            "id": "38",
+            "question": null,
+            "regex": null,
+            "action": "这是一个未知错误"
+        },
+        {
+            "id": "39",
+            "question": "你是否能访问到app?",
+            "regex": null,
+            "action": "kubectl port-forward <pod-name> 8080:<pod-port> && curl 8080"
+        },
+        {
+            "id": "40",
+            "question": null,
+            "regex": null,
+            "action": "Pod 没有任何异常！"
+        },
+        {
+            "id": "41",
+            "question": null,
+            "regex": null,
+            "action": "可能是网络异常"
+        },
+        {
+            "id": "42",
+            "question": "Readiness probe 是否失败？确定容器是否由于就绪探针失败而未能就绪。",
+            "regex": null,
+            "action": "kubectl describe pod <pod-name>"
+        }
+    ],
+    "edges": [
+        {
+            "source": "1",
+            "target": "2",
+            "value": "true"
+        },
+        {
+            "source": "1",
+            "target": "6",
+            "value": "false"
+        },
+        {
+            "source": "2",
+            "target": "3",
+            "value": "true"
+        },
+        {
+            "source": "2",
+            "target": "4",
+            "value": "false"
+        },
+        {
+            "source": "4",
+            "target": "5",
+            "value": "true"
+        },
+        {
+            "source": "4",
+            "target": "7",
+            "value": "false"
+        },
+        {
+            "source": "6",
+            "target": "9",
+            "value": "true"
+        },
+        {
+            "source": "6",
+            "target": "22",
+            "value": "false"
+        },
+        {
+            "source": "7",
+            "target": "23",
+            "value": "true"
+        },
+        {
+            "source": "7",
+            "target": "24",
+            "value": "false"
+        },
+        {
+            "source": "9",
+            "target": "39",
+            "value": "true"
+        },
+        {
+            "source": "9",
+            "target": "11",
+            "value": "false"
+        },
+        {
+            "source": "10",
+            "target": "22",
+            "value": "true"
+        },
+        {
+            "source": "10",
+            "target": "13",
+            "value": "false"
+        },
+        {
+            "source": "11",
+            "target": "12",
+            "value": "true"
+        },
+        {
+            "source": "11",
+            "target": "38",
+            "value": "false"
+        },
+        {
+            "source": "13",
+            "target": "16",
+            "value": "true"
+        },
+        {
+            "source": "13",
+            "target": "17",
+            "value": "false"
+        },
+        {
+            "source": "16",
+            "target": "27",
+            "value": "true"
+        },
+        {
+            "source": "16",
+            "target": "21",
+            "value": "false"
+        },
+        {
+            "source": "17",
+            "target": "32",
+            "value": "true"
+        },
+        {
+            "source": "17",
+            "target": "18",
+            "value": "false"
+        },
+        {
+            "source": "18",
+            "target": "19",
+            "value": "true"
+        },
+        {
+            "source": "18",
+            "target": "20",
+            "value": "false"
+        },
+        {
+            "source": "22",
+            "target": "8",
+            "value": "true"
+        },
+        {
+            "source": "22",
+            "target": "10",
+            "value": "false"
+        },
+        {
+            "source": "24",
+            "target": "26",
+            "value": "true"
+        },
+        {
+            "source": "24",
+            "target": "25",
+            "value": "false"
+        },
+        {
+            "source": "27",
+            "target": "29",
+            "value": "true"
+        },
+        {
+            "source": "27",
+            "target": "28",
+            "value": "false"
+        },
+        {
+            "source": "29",
+            "target": "30",
+            "value": "true"
+        },
+        {
+            "source": "29",
+            "target": "31",
+            "value": "false"
+        },
+        {
+            "source": "32",
+            "target": "34",
+            "value": "true"
+        },
+        {
+            "source": "32",
+            "target": "33",
+            "value": "false"
+        },
+        {
+            "source": "33",
+            "target": "20",
+            "value": "true"
+        },
+        {
+            "source": "33",
+            "target": "21",
+            "value": "false"
+        },
+        {
+            "source": "34",
+            "target": "35",
+            "value": "true"
+        },
+        {
+            "source": "34",
+            "target": "36",
+            "value": "false"
+        },
+        {
+            "source": "36",
+            "target": "37",
+            "value": "true"
+        },
+        {
+            "source": "36",
+            "target": "38",
+            "value": "false"
+        },
+        {
+            "source": "39",
+            "target": "40",
+            "value": "true"
+        },
+        {
+            "source": "39",
+            "target": "41",
+            "value": "false"
+        },
+        {
+            "source": "42",
+            "target": "14",
+            "value": "true"
+        },
+        {
+            "source": "42",
+            "target": "15",
+            "value": "false"
+        }
+    ]
+}

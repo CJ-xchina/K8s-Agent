@@ -1,6 +1,6 @@
-from typing import List, Dict, Optional
-from enum import Enum
 from datetime import datetime
+from enum import Enum
+from typing import List, Optional
 
 from bean.graph.Edge import Edge
 
@@ -15,23 +15,25 @@ class NodeStatusEnum(Enum):
 class Node:
     def __init__(self, node_id: str, question: str, node_type: str, node_left: int, node_top: int,
                  regex: Optional[str] = "", action: Optional[str] = "", conclusion: Optional[str] = "",
-                 description: Optional[str] = ""):
+                 description: Optional[str] = "", parent_node: Optional[str] = ""):
+        # 前端传入的固定参数
         self.node_id = node_id
         self.question = question
         self.regex = regex
         self.action = action
-        self.conclusion = conclusion
         self.description = description
         self.node_type = node_type
         self.node_left = node_left
         self.node_top = node_top
         self.edges = []  # 存储从该节点出发的所有边
+        self.parent_node = parent_node  # default对应组关系
 
-        # 新增字段
+        # 执行时需要修改的参数
         self.status = NodeStatusEnum.WAITING  # 默认状态为等待
         self.start_time = ""  # 开始执行时间，默认为空
         self.end_time = ""  # 结束执行时间，默认为空
         self.llm_call_count = 0  # 调用LLM总次数，默认为0
+        self.conclusion = conclusion
 
     def add_edge(self, edge: 'Edge'):
         """
@@ -89,5 +91,6 @@ class Node:
             "position": {
                 "x": self.node_left,
                 "y": self.node_top
-            }
+            },
+            "parentNode": self.parent_node
         }

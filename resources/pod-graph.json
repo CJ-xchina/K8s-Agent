@@ -1,0 +1,1034 @@
+{
+    "nodes": [
+        {
+            "id": "1",
+            "data": {
+                "question": "该 Pod 是否处于 PENDING 状态？",
+                "regex": "",
+                "action": "kubectl get pod crash-loop -n k8sgpt-test",
+                "description": ""
+            },
+            "type": "input",
+            "position": {
+                "x": 0,
+                "y": 0
+            }
+        },
+        {
+            "id": "2",
+            "data": {
+                "question": "检查集群是否已满？判断当前集群的资源是否已经耗尽，无法调度新的 Pod。",
+                "regex": "",
+                "action": " kubectl describe pod <pod-name>",
+                "description": ""
+            },
+            "type": "default",
+            "position": {
+                "x": 200,
+                "y": 0
+            }
+        },
+        {
+            "id": "3",
+            "data": {
+                "question": "",
+                "regex": "",
+                "action": "集群资源已满， 需要提供更大的集群来保证Pod的正常运行",
+                "description": ""
+            },
+            "type": "output",
+            "position": {
+                "x": 400,
+                "y": 0
+            }
+        },
+        {
+            "id": "4",
+            "data": {
+                "question": "是否触发了 ResourceQuota 限制？确认是否超出了命名空间的资源配额。",
+                "regex": "",
+                "action": "检查 ResourceQuota 限制",
+                "description": ""
+            },
+            "type": "default",
+            "position": {
+                "x": 600,
+                "y": 0
+            }
+        },
+        {
+            "id": "5",
+            "data": {
+                "question": "",
+                "regex": "",
+                "action": "放宽 ResourceQuota 限制",
+                "description": ""
+            },
+            "type": "output",
+            "position": {
+                "x": 800,
+                "y": 0
+            }
+        },
+        {
+            "id": "6",
+            "data": {
+                "question": "该 Pod 是否在运行 (Running) 状态？",
+                "regex": "",
+                "action": "",
+                "description": ""
+            },
+            "type": "default",
+            "position": {
+                "x": 0,
+                "y": 200
+            }
+        },
+        {
+            "id": "7",
+            "data": {
+                "question": "是否正在挂载一个处于 PENDING 状态的 PersistentVolumeClaim？",
+                "regex": "",
+                "action": "kubectl get pvc & kubectl describe pvc <pvc-name>",
+                "description": ""
+            },
+            "type": "default",
+            "position": {
+                "x": 200,
+                "y": 200
+            }
+        },
+        {
+            "id": "8",
+            "data": {
+                "question": "",
+                "regex": "",
+                "action": "修复应用中的问题",
+                "description": ""
+            },
+            "type": "output",
+            "position": {
+                "x": 400,
+                "y": 200
+            }
+        },
+        {
+            "id": "9",
+            "data": {
+                "question": "Pods 是否已就绪？检查是否容器都通过了就绪探针（Readiness Probe）的检查。",
+                "regex": "",
+                "action": "检查该 pod 是否处于 READY 状态？",
+                "description": ""
+            },
+            "type": "default",
+            "position": {
+                "x": 600,
+                "y": 200
+            }
+        },
+        {
+            "id": "10",
+            "data": {
+                "question": "容器是否过快退出？检查容器是否在启动后迅速崩溃并退出。",
+                "regex": "",
+                "action": "kubectl logs <pod-name> --previous",
+                "description": ""
+            },
+            "type": "default",
+            "position": {
+                "x": 800,
+                "y": 200
+            }
+        },
+        {
+            "id": "11",
+            "data": {
+                "question": "Readiness probe 是否失败？确定容器是否由于就绪探针失败而未能就绪。",
+                "regex": "",
+                "action": "kubectl describe pod <pod-name>",
+                "description": ""
+            },
+            "type": "default",
+            "position": {
+                "x": 0,
+                "y": 400
+            }
+        },
+        {
+            "id": "12",
+            "data": {
+                "question": "",
+                "regex": "",
+                "action": "修复集群的Readiness probe",
+                "description": ""
+            },
+            "type": "output",
+            "position": {
+                "x": 200,
+                "y": 400
+            }
+        },
+        {
+            "id": "13",
+            "data": {
+                "question": "Pod 状态是否为 ImagePullBackOff？检查镜像是否无法拉取导致 Pod 失败。",
+                "regex": "",
+                "action": "kubectl describe pod <pod-name>",
+                "description": ""
+            },
+            "type": "default",
+            "position": {
+                "x": 400,
+                "y": 400
+            }
+        },
+        {
+            "id": "14",
+            "data": {
+                "question": "",
+                "regex": "",
+                "action": "修复 Readiness probe",
+                "description": ""
+            },
+            "type": "output",
+            "position": {
+                "x": 600,
+                "y": 400
+            }
+        },
+        {
+            "id": "15",
+            "data": {
+                "question": "",
+                "regex": "",
+                "action": "Pod 处于未知状态",
+                "description": ""
+            },
+            "type": "output",
+            "position": {
+                "x": 800,
+                "y": 400
+            }
+        },
+        {
+            "id": "16",
+            "data": {
+                "question": "镜像名称是否正确？检查镜像名称是否有拼写错误或配置错误。",
+                "regex": "",
+                "action": "检查Pod中使用的镜像名称",
+                "description": ""
+            },
+            "type": "default",
+            "position": {
+                "x": 0,
+                "y": 600
+            }
+        },
+        {
+            "id": "17",
+            "data": {
+                "question": "Pod 状态是否为 CrashLoopBackOff？检查容器是否不断重启并进入 CrashLoopBackOff 状态。",
+                "regex": "",
+                "action": "检查 Pod 是否处于 CrashLoopBackOff 状态",
+                "description": ""
+            },
+            "type": "default",
+            "position": {
+                "x": 200,
+                "y": 600
+            }
+        },
+        {
+            "id": "18",
+            "data": {
+                "question": "Pod 状态是否为 CrashLoopBackOff？检查容器是否不断重启并进入 CrashLoopBackOff 状态。",
+                "regex": "",
+                "action": "检查 Pod 是否处于 RunContainerError 的状态",
+                "description": ""
+            },
+            "type": "default",
+            "position": {
+                "x": 400,
+                "y": 600
+            }
+        },
+        {
+            "id": "19",
+            "data": {
+                "question": "",
+                "regex": "",
+                "action": "问题可能出在挂载卷上。",
+                "description": ""
+            },
+            "type": "output",
+            "position": {
+                "x": 600,
+                "y": 600
+            }
+        },
+        {
+            "id": "20",
+            "data": {
+                "question": "",
+                "regex": "",
+                "action": "请你咨询 StackOverflow",
+                "description": ""
+            },
+            "type": "output",
+            "position": {
+                "x": 800,
+                "y": 600
+            }
+        },
+        {
+            "id": "21",
+            "data": {
+                "question": "",
+                "regex": "",
+                "action": "修复镜像的名称",
+                "description": ""
+            },
+            "type": "output",
+            "position": {
+                "x": 0,
+                "y": 800
+            }
+        },
+        {
+            "id": "22",
+            "data": {
+                "question": "是否能查看应用的日志？判断是否可以通过日志诊断应用的问题。",
+                "regex": "",
+                "action": "kubectl logs <pod-name>",
+                "description": ""
+            },
+            "type": "default",
+            "position": {
+                "x": 200,
+                "y": 800
+            }
+        },
+        {
+            "id": "23",
+            "data": {
+                "question": "",
+                "regex": "",
+                "action": "修复 PersistentVolumeClaim",
+                "description": ""
+            },
+            "type": "output",
+            "position": {
+                "x": 400,
+                "y": 800
+            }
+        },
+        {
+            "id": "24",
+            "data": {
+                "question": "检查 Pod 是否被正确分配到节点。",
+                "regex": "",
+                "action": "kubectl get pods -o wide",
+                "description": ""
+            },
+            "type": "default",
+            "position": {
+                "x": 600,
+                "y": 800
+            }
+        },
+        {
+            "id": "25",
+            "data": {
+                "question": "",
+                "regex": "",
+                "action": "调度器 Scheduler 问题",
+                "description": ""
+            },
+            "type": "output",
+            "position": {
+                "x": 800,
+                "y": 800
+            }
+        },
+        {
+            "id": "26",
+            "data": {
+                "question": "",
+                "regex": "",
+                "action": "Kubelet 可能存在问题",
+                "description": ""
+            },
+            "type": "output",
+            "position": {
+                "x": 0,
+                "y": 1000
+            }
+        },
+        {
+            "id": "27",
+            "data": {
+                "question": "检查镜像的标签是否是有效的？镜像的标签是否存在？",
+                "regex": "",
+                "action": "检查镜像的标签是否是有效的？镜像的标签是否存在？",
+                "description": ""
+            },
+            "type": "default",
+            "position": {
+                "x": 200,
+                "y": 1000
+            }
+        },
+        {
+            "id": "28",
+            "data": {
+                "question": "",
+                "regex": "",
+                "action": "修复镜像的Tag标签",
+                "description": ""
+            },
+            "type": "output",
+            "position": {
+                "x": 400,
+                "y": 1000
+            }
+        },
+        {
+            "id": "29",
+            "data": {
+                "question": "是否是从私有镜像处拉取镜像？",
+                "regex": "",
+                "action": "是否是从私有镜像处拉取镜像？",
+                "description": ""
+            },
+            "type": "default",
+            "position": {
+                "x": 600,
+                "y": 1000
+            }
+        },
+        {
+            "id": "30",
+            "data": {
+                "question": "",
+                "regex": "",
+                "action": "你需要重新配置你的镜像，出错的原因是拉取一个私有的镜像",
+                "description": ""
+            },
+            "type": "output",
+            "position": {
+                "x": 800,
+                "y": 1000
+            }
+        },
+        {
+            "id": "31",
+            "data": {
+                "question": "",
+                "regex": "",
+                "action": "问题可能出在 CRI 或 Kubelet 上。",
+                "description": ""
+            },
+            "type": "output",
+            "position": {
+                "x": 0,
+                "y": 1200
+            }
+        },
+        {
+            "id": "32",
+            "data": {
+                "question": "你检查了日志并修复了崩溃的应用吗？",
+                "regex": "",
+                "action": "你检查了日志并修复了崩溃的应用吗？",
+                "description": ""
+            },
+            "type": "default",
+            "position": {
+                "x": 200,
+                "y": 1200
+            }
+        },
+        {
+            "id": "33",
+            "data": {
+                "question": "你是否查看了日志并修复了崩溃的应用？检查是否通过日志找到并解决了应用中的问题。",
+                "regex": "",
+                "action": "修复崩溃的应用",
+                "description": ""
+            },
+            "type": "default",
+            "position": {
+                "x": 400,
+                "y": 1200
+            }
+        },
+        {
+            "id": "34",
+            "data": {
+                "question": "DockerFile存在问题？",
+                "regex": "",
+                "action": "检查DockerFile是否存在问题",
+                "description": ""
+            },
+            "type": "default",
+            "position": {
+                "x": 600,
+                "y": 1200
+            }
+        },
+        {
+            "id": "35",
+            "data": {
+                "question": "",
+                "regex": "",
+                "action": "你是否忘记了在 Dockerfile 中加入 CMD 指令？检查 Dockerfile 配置是否正确，尤其是 CMD 指令。",
+                "description": ""
+            },
+            "type": "output",
+            "position": {
+                "x": 800,
+                "y": 1200
+            }
+        },
+        {
+            "id": "36",
+            "data": {
+                "question": "检查Pod 是否快速且经常重启？在Running 和 CashLoopBackoff 两个状态之间反复切换？",
+                "regex": "",
+                "action": "检查Pod 是否快速且经常重启？在Running 和 CashLoopBackoff 两个状态之间反复切换？",
+                "description": ""
+            },
+            "type": "default",
+            "position": {
+                "x": 0,
+                "y": 1400
+            }
+        },
+        {
+            "id": "37",
+            "data": {
+                "question": "",
+                "regex": "",
+                "action": "修复 liveness probe",
+                "description": ""
+            },
+            "type": "output",
+            "position": {
+                "x": 200,
+                "y": 1400
+            }
+        },
+        {
+            "id": "38",
+            "data": {
+                "question": "",
+                "regex": "",
+                "action": "这是一个未知错误",
+                "description": ""
+            },
+            "type": "output",
+            "position": {
+                "x": 400,
+                "y": 1400
+            }
+        },
+        {
+            "id": "39",
+            "data": {
+                "question": "你是否能访问到app?",
+                "regex": "",
+                "action": "kubectl port-forward <pod-name> 8080:<pod-port> && curl 8080",
+                "description": ""
+            },
+            "type": "default",
+            "position": {
+                "x": 600,
+                "y": 1400
+            }
+        },
+        {
+            "id": "40",
+            "data": {
+                "question": "",
+                "regex": "",
+                "action": "Pod 没有任何异常！",
+                "description": ""
+            },
+            "type": "output",
+            "position": {
+                "x": 800,
+                "y": 1400
+            }
+        },
+        {
+            "id": "41",
+            "data": {
+                "question": "",
+                "regex": "",
+                "action": "可能是网络异常",
+                "description": ""
+            },
+            "type": "output",
+            "position": {
+                "x": 0,
+                "y": 1600
+            }
+        },
+        {
+            "id": "42",
+            "data": {
+                "question": "Readiness probe 是否失败？确定容器是否由于就绪探针失败而未能就绪。",
+                "regex": "",
+                "action": "kubectl describe pod <pod-name>",
+                "description": ""
+            },
+            "type": "input",
+            "position": {
+                "x": 200,
+                "y": 1600
+            }
+        }
+    ],
+    "edges": [
+        {
+            "source": "1",
+            "target": "2",
+            "id": "1->2",
+            "data": {
+                "label": "true"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "1",
+            "target": "6",
+            "id": "1->6",
+            "data": {
+                "label": "false"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "2",
+            "target": "3",
+            "id": "2->3",
+            "data": {
+                "label": "true"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "2",
+            "target": "4",
+            "id": "2->4",
+            "data": {
+                "label": "false"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "4",
+            "target": "5",
+            "id": "4->5",
+            "data": {
+                "label": "true"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "4",
+            "target": "7",
+            "id": "4->7",
+            "data": {
+                "label": "false"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "6",
+            "target": "9",
+            "id": "6->9",
+            "data": {
+                "label": "true"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "6",
+            "target": "22",
+            "id": "6->22",
+            "data": {
+                "label": "false"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "7",
+            "target": "23",
+            "id": "7->23",
+            "data": {
+                "label": "true"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "7",
+            "target": "24",
+            "id": "7->24",
+            "data": {
+                "label": "false"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "9",
+            "target": "39",
+            "id": "9->39",
+            "data": {
+                "label": "true"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "9",
+            "target": "11",
+            "id": "9->11",
+            "data": {
+                "label": "false"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "10",
+            "target": "22",
+            "id": "10->22",
+            "data": {
+                "label": "true"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "10",
+            "target": "13",
+            "id": "10->13",
+            "data": {
+                "label": "false"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "11",
+            "target": "12",
+            "id": "11->12",
+            "data": {
+                "label": "true"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "11",
+            "target": "38",
+            "id": "11->38",
+            "data": {
+                "label": "false"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "13",
+            "target": "16",
+            "id": "13->16",
+            "data": {
+                "label": "true"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "13",
+            "target": "17",
+            "id": "13->17",
+            "data": {
+                "label": "false"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "16",
+            "target": "27",
+            "id": "16->27",
+            "data": {
+                "label": "true"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "16",
+            "target": "21",
+            "id": "16->21",
+            "data": {
+                "label": "false"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "17",
+            "target": "32",
+            "id": "17->32",
+            "data": {
+                "label": "true"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "17",
+            "target": "18",
+            "id": "17->18",
+            "data": {
+                "label": "false"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "18",
+            "target": "19",
+            "id": "18->19",
+            "data": {
+                "label": "true"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "18",
+            "target": "20",
+            "id": "18->20",
+            "data": {
+                "label": "false"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "22",
+            "target": "8",
+            "id": "22->8",
+            "data": {
+                "label": "true"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "22",
+            "target": "10",
+            "id": "22->10",
+            "data": {
+                "label": "false"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "24",
+            "target": "26",
+            "id": "24->26",
+            "data": {
+                "label": "true"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "24",
+            "target": "25",
+            "id": "24->25",
+            "data": {
+                "label": "false"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "27",
+            "target": "29",
+            "id": "27->29",
+            "data": {
+                "label": "true"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "27",
+            "target": "28",
+            "id": "27->28",
+            "data": {
+                "label": "false"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "29",
+            "target": "30",
+            "id": "29->30",
+            "data": {
+                "label": "true"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "29",
+            "target": "31",
+            "id": "29->31",
+            "data": {
+                "label": "false"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "32",
+            "target": "34",
+            "id": "32->34",
+            "data": {
+                "label": "true"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "32",
+            "target": "33",
+            "id": "32->33",
+            "data": {
+                "label": "false"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "33",
+            "target": "20",
+            "id": "33->20",
+            "data": {
+                "label": "true"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "33",
+            "target": "21",
+            "id": "33->21",
+            "data": {
+                "label": "false"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "34",
+            "target": "35",
+            "id": "34->35",
+            "data": {
+                "label": "true"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "34",
+            "target": "36",
+            "id": "34->36",
+            "data": {
+                "label": "false"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "36",
+            "target": "37",
+            "id": "36->37",
+            "data": {
+                "label": "true"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "36",
+            "target": "38",
+            "id": "36->38",
+            "data": {
+                "label": "false"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "39",
+            "target": "40",
+            "id": "39->40",
+            "data": {
+                "label": "true"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "39",
+            "target": "41",
+            "id": "39->41",
+            "data": {
+                "label": "false"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "42",
+            "target": "14",
+            "id": "42->14",
+            "data": {
+                "label": "true"
+            },
+            "type": "default",
+            "updatable": true
+        },
+        {
+            "source": "42",
+            "target": "15",
+            "id": "42->15",
+            "data": {
+                "label": "false"
+            },
+            "type": "default",
+            "updatable": true
+        }
+    ]
+}

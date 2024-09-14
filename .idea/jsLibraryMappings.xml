@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="JavaScriptLibraryMappings">
+    <file url="file://$PROJECT_DIR$/../k8s-agent-ui" libraries="{k8s-agent-ui/node_modules}" />
+    <file url="file://$PROJECT_DIR$/../ui/k8s-agent-ui" libraries="{k8s-agent-ui/node_modules}" />
+  </component>
+</project>

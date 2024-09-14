@@ -1,26 +1,23 @@
-import json
-from typing import List, Dict, Optional
+from typing import List, Optional
 
 from bean.graph.Edge import Edge
 from bean.graph.Node import Node
 
 
 class Graph:
-    def __init__(self, json_source: str):
+    def __init__(self, graph_id: str, category: str = "", purpose: str = "", name: str = ""):
         self.nodes = {}
         self.edges = []
         self.start_node_id = "1"
         self.current_node_id = "1"
+        self.category = category
+        self.purpose = purpose
+        self.name = name
+        self.graph_id = graph_id
+        self.position = [0, 0]
+        self.zoom = 1.0
+        self.viewport = {"x": 0, "y": 0, "zoom": 1.0}
 
-        if json_source:
-            # 如果是文件路径，则加载文件内容
-            if isinstance(json_source, str) and Path(json_source).is_file():
-                with open(json_source, 'r', encoding='utf-8') as file:
-                    json_data = json.load(file)
-                    self.load_from_json(json_data)
-            else:
-                json_map = json.loads(json_source)
-                self.load_from_json(json_map)
     def add_node(self, node: Node):
         """
         将节点添加到图中。
@@ -75,47 +72,70 @@ class Graph:
         else:
             return []
 
-    def load_from_json(self, json_data: Dict):
-        """
-        从JSON数据加载图结构。
-        :param json_data: 包含图节点和边信息的字典。
-        """
+    def to_json(self) -> dict:
+        """将整个图对象转换为所需的 JSON 字典，包含节点和边，格式与要求一致。"""
+        return {
+            self.graph_id: {
+                "nodes": [node.to_dict() for node in self.nodes.values()],
+                "edges": [edge.to_dict() for edge in self.edges],
+                "position": self.position,
+                "zoom": self.zoom,
+                "viewport": self.viewport
+            }
+        }
 
-        only_one_input = False
-        # 加载节点信息
-        for node_data in json_data.get("nodes", []):
+    @staticmethod
+    def from_flow_data_map(graph_id: str, flow_data_map: dict, name: str = "", category: str = "", purpose: str = ""):
+        """从 flowDataMap 创建图对象，并设置 name, category, purpose"""
+        graph = Graph(graph_id=graph_id, name=name, category=category, purpose=purpose)
 
+        # 设置位置和缩放
+        graph.position = flow_data_map.get("position", [0, 0])
+        graph.zoom = flow_data_map.get("zoom", 1.0)
+        graph.viewport = flow_data_map.get("viewport", {"x": 0, "y": 0, "zoom": 1.0})
+
+        # 初始化 start_node_id 和 current_node_id
+        graph.start_node_id = None
+        graph.current_node_id = None
+
+        # 加载节点信息，找到 type 为 "input" 的节点
+        for node_data in flow_data_map.get("nodes", []):
             node = Node(
                 node_id=node_data["id"],
-                question=node_data["data"].get("question", ""),
-                regex=node_data["data"].get("regex", ""),
-                action=node_data["data"].get("action", ""),
-                description=node_data["data"].get("description", ""),
+                question=node_data.get("data", {}).get("question", ""),
+                regex=node_data.get("data", {}).get("regex", ""),
+                action=node_data.get("data", {}).get("action", ""),
+                description=node_data.get("data", {}).get("description", ""),
                 node_type=node_data.get("type", "default"),
-                node_left=node_data["position"].get("x"),
-                node_top=node_data["position"].get("y")
+                node_left=node_data["position"]["x"],
+                node_top=node_data["position"]["y"],
+                parent_node=node_data.get("parentNode", None)
             )
+            graph.add_node(node)
 
+            # 如果节点类型为 "input"，则将其设置为起始节点
             if node.node_type == "input":
-                if only_one_input:
-                    raise Exception("只能有一个入口")
-                only_one_input = True
-                self.current_node_id = node.node_id
-                self.start_node_id = node.node_id
-            self.add_node(node)
+                graph.start_node_id = node.node_id
+                graph.current_node_id = node.node_id
+
+        # 如果没有找到 "input" 类型的节点，抛出异常或处理为 None
+        if graph.start_node_id is None:
+            raise ValueError(f"Graph {graph_id} does not contain a node with type 'input'")
 
         # 加载边信息
-        for edge_data in json_data.get("edges", []):
+        for edge_data in flow_data_map.get("edges", []):
             edge = Edge(
                 edge_id=edge_data["id"],
                 source_node=edge_data["source"],
                 target_node=edge_data["target"],
                 edge_type=edge_data.get("type", "default"),
-                condition_value=edge_data["data"]["label"],
-                source_Handle=edge_data["sourceHandle"],
-                target_Handle=edge_data["targetHandle"]
+                condition_value=edge_data["data"].get("label", ""),
+                source_Handle=edge_data.get("sourceHandle", ""),
+                target_Handle=edge_data.get("targetHandle", "")
             )
-            self.add_edge(edge)
+            graph.add_edge(edge)
+
+        return graph
 
     def get_graph_obj(self) -> 'Graph':
         """
@@ -142,21 +162,10 @@ class Graph:
         """
         return self.is_terminal_node(self.current_node_id)
 
-    def to_json(self) -> str:
-        """
-        将整个图对象转换为 JSON 字符串，包含节点和边。
-        :return: JSON 字符串。
-        """
-        graph_data = {
-            "nodes": [node.to_dict() for node in self.nodes.values()],
-            "edges": [edge.to_dict() for edge in self.edges]
-        }
-        return json.dumps(graph_data, indent=5, ensure_ascii=False)
 
     def get_conclusion_by_id(self, node_id: str):
         node = self.get_node(node_id)
         return node.conclusion
-
 
     def jump_to_node_by_condition(self, condition_value: str):
         """
@@ -179,29 +188,23 @@ class Graph:
 
         raise ValueError(f"在节点 {current_node.node_id} 中没有找到匹配的条件值: {condition_value}。")
 
+    def get_category(self) -> str:
+        """
+        获取流程图的分类。
+        :return: 流程图的分类。
+        """
+        return self.category
 
-from pathlib import Path
+    def get_purpose(self) -> str:
+        """
+        获取流程图的目的。
+        :return: 流程图的目的。
+        """
+        return self.purpose
 
-
-def main(json_file_path: str):
-    # Check if the file exists
-    if not Path(json_file_path).is_file():
-        print(f"Error: The file {json_file_path} does not exist.")
-        return
-
-    # Load the JSON file
-    with open(json_file_path, 'r', encoding='utf-8') as file:
-        json_data = json.load(file)
-
-    # Create a Graph instance, assuming start_node_id is "1" or any valid start node in the JSON.
-    start_node_id = json_data["nodes"][0]["id"]  # Assuming first node as start node
-    graph = Graph(json_source=json_data)
-
-    # Output the graph as JSON for verification
-    graph_json = graph.to_json()
-    print(graph_json)
-
-
-if __name__ == "__main__":
-    json_file_path = "../../resources/pod-graph.json"
-    main(json_file_path)
+    def get_name(self) -> str:
+        """
+        获取流程图名称
+        :return:  流程图名称
+        """
+        return self.name
