@@ -18,6 +18,9 @@ class Graph:
         self.zoom = 1.0
         self.viewport = {"x": 0, "y": 0, "zoom": 1.0}
 
+        # 节点执行顺序, 用于回退
+        self.work_flow = []
+
     def add_node(self, node: Node):
         """
         将节点添加到图中。

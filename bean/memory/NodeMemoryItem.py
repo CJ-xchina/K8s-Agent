@@ -85,7 +85,7 @@ class QuestionNodePair:
 
 
 
-class MemoryItem:
+class NodeMemoryItem:
     """
     MemoryItem 类用于存储与某个动作（action）相关的观察、问题与节点ID的映射。
     """

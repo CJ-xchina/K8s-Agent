@@ -4,7 +4,7 @@ import threading
 import time
 from typing import Any, Dict, Optional, Callable, List, Tuple
 
-from bean.memory.MemoryItem import MemoryItem
+from bean.memory.NodeMemoryItem import MemoryItem
 
 
 class baseMemory(object):

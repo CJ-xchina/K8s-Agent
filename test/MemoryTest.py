@@ -4,7 +4,7 @@ import time
 from datetime import datetime, timedelta
 
 from bean.graph.Graph import Graph
-from bean.memory.MemoryItem import MemoryItemFactory
+from bean.memory.NodeMemoryItem import MemoryItemFactory
 from bean.memory.baseMemory import baseMemory
 
 # 定义 Graph 的 JSON 数据，action 是 Windows 命令

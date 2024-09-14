@@ -4,7 +4,7 @@ from langchain_openai import ChatOpenAI
 
 from bean.graph.Graph import Graph
 from bean.graph.Node import NodeStatusEnum
-from bean.memory.MemoryItem import MemoryItemFactory
+from bean.memory.NodeMemoryItem import MemoryItemFactory
 from bean.memory.baseMemory import baseMemory
 from bean.parser.StructuredChatOutputParser import StructuredChatOutputParser
 from bean.parser.StructuredConclusionOuputParser import StructuredConclusionOutputParser
@@ -18,8 +18,8 @@ from utils.str_utils import process_regex
 from utils.tools import execute_action
 
 
-class PodAgent:
-    def __init__(self, json_str: str = "", pod: Pod = None):
+class graphExecutor:
+    def __init__(self, memory: baseMemory, json_str, pod: Pod, ):
         """
         初始化 PodAgent 对象，创建 Graph 和 Memory 的实例，并初始化各个阶段的处理逻辑。
 
@@ -28,7 +28,7 @@ class PodAgent:
             pod (Pod): 传入的Pod对象。
         """
         self.graph = Graph(json_str)  # 初始化图结构，传入路径
-        self.memory = baseMemory(60, self.graph.get_graph_obj())  # 创建一个 baseMemory 实例，用于存储和管理 MemoryItem
+        self.memory = memory
         self.pod = pod  # 传入的Pod对象
 
         # 初始化思考阶段（ActionStage），用于决定下一步行动
