@@ -36,7 +36,14 @@ def check_json_format(json_map, event):
 
 def check_graph_structure(json_map, event):
     """
-    检查图结构：每个图应仅有一个 type = 'input' 的节点。
+    检查图结构：
+    1. 每个图应仅有一个 parentNode 为 "" 的 input 类型节点。
+    2. 每个 group 类型节点都应该包含且仅包含一个 input 类型节点。
+    3. 每个 input 节点必须有且仅有一个连接的出边。
+    4. group 节点之间只能连接到其他 group 节点。
+    5. group 节点不能作为 default 或 output 节点的目标节点。
+    6. default 和 output 节点必须有父节点。
+    7. 图中不应有孤立节点，所有节点必须通过边与其他节点连接。
     """
     try:
         flow_data_map = json_map.get('flowDataMap', [])
@@ -44,17 +51,100 @@ def check_graph_structure(json_map, event):
         for graph in flow_data_map:
             graph_id = graph[0]
             graph_info = graph[1]
-            input_nodes = [node for node in graph_info['nodes'] if node.get('type') == 'input']
+            nodes = graph_info['nodes']
+            edges = graph_info['edges']
 
-            # 确保只有一个 input 节点
+            # 1. 确保每个图有一个 parentNode 为 "" 的 input 节点
+            input_nodes = [node for node in nodes if node.get('type') == 'input' and node.get('parentNode') == '']
             if len(input_nodes) != 1:
                 socketio.emit('check_update', {
                     'task': '图结构检查',
                     'result': 'failed',
-                    'errorMessage': f'图 {graph_id} 应该只有一个输入节点, 但是找到了 {len(input_nodes)}'
+                    'errorMessage': f'图 {graph_id} 应该有且只有一个外层开始节点, 但找到了 {len(input_nodes)} 个！'
                 })
                 event.set()
                 return
+
+            # 2. 确保每个 group 都有且仅有一个 input 节点
+            group_nodes = [node for node in nodes if node.get('type') == 'group']
+            for group in group_nodes:
+                group_id = group.get('id')
+                group_input_nodes = [node for node in nodes if node.get('type') == 'input' and node.get('parentNode') == group_id]
+
+                if len(group_input_nodes) != 1:
+                    socketio.emit('check_update', {
+                        'task': '图结构检查',
+                        'result': 'failed',
+                        'errorMessage': f'组 {group_id} 中应该有且仅有一个输入节点, 但找到了 {len(group_input_nodes)} 个！'
+                    })
+                    event.set()
+                    return
+
+            # 3. 每个 input 节点必须有且仅有一个连接的出边
+            for node in input_nodes:
+                node_id = node['id']
+                out_edges = [edge for edge in edges if edge['source'] == node_id]
+                if len(out_edges) != 1:
+                    socketio.emit('check_update', {
+                        'task': '图结构检查',
+                        'result': 'failed',
+                        'errorMessage': f'Input 节点 {node_id} 必须有且仅有一个连接的出边, 但找到了 {len(out_edges)} 个！'
+                    })
+                    event.set()
+                    return
+
+            # 4. group 节点之间只能连接到其他 group 节点
+            for group in group_nodes:
+                group_id = group['id']
+                group_edges = [edge for edge in edges if edge['source'] == group_id]
+                for edge in group_edges:
+                    target_node = next((node for node in nodes if node['id'] == edge['target']), None)
+                    if target_node and target_node.get('type') != 'group':
+                        socketio.emit('check_update', {
+                            'task': '图结构检查',
+                            'result': 'failed',
+                            'errorMessage': f'Group 节点 {group_id} 连接到了非 group 节点 {target_node["id"]}'
+                        })
+                        event.set()
+                        return
+
+            # 5. group 节点不能作为 default 或 output 节点的目标节点
+            for edge in edges:
+                target_node = next((node for node in nodes if node['id'] == edge['target']), None)
+                source_node = next((node for node in nodes if node['id'] == edge['source']), None)
+                if target_node and target_node.get('type') == 'group':
+                    if source_node and source_node.get('type') in ['default', 'output']:
+                        socketio.emit('check_update', {
+                            'task': '图结构检查',
+                            'result': 'failed',
+                            'errorMessage': f'Default 或 output 节点 {source_node["id"]} 不能指向 group 节点 {target_node["id"]}'
+                        })
+                        event.set()
+                        return
+
+            # 6. default 和 output 节点必须有父节点
+            for node in nodes:
+                if node.get('type') in ['default', 'output'] and not node.get('parentNode'):
+                    socketio.emit('check_update', {
+                        'task': '图结构检查',
+                        'result': 'failed',
+                        'errorMessage': f'节点 {node["id"]} (类型 {node["type"]}) 没有父节点'
+                    })
+                    event.set()
+                    return
+
+            # 7. 确保没有孤立节点
+            connected_node_ids = set([edge['source'] for edge in edges] + [edge['target'] for edge in edges])
+            for node in nodes:
+                if node['id'] not in connected_node_ids:
+                    socketio.emit('check_update', {
+                        'task': '图结构检查',
+                        'result': 'failed',
+                        'errorMessage': f'节点 {node["id"]} 是孤立节点，没有任何连接'
+                    })
+                    event.set()
+                    return
+
     except Exception as e:
         socketio.emit('check_update', {'task': '图结构检查', 'result': 'failed', 'errorMessage': str(e)})
         event.set()
@@ -62,6 +152,7 @@ def check_graph_structure(json_map, event):
 
     socketio.emit('check_update', {'task': '图结构检查', 'result': 'success'})
     event.set()
+
 
 
 def check_nodes_connections(json_map, event):

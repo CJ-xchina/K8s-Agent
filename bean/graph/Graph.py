@@ -170,26 +170,78 @@ class Graph:
         node = self.get_node(node_id)
         return node.conclusion
 
-    def jump_to_node_by_condition(self, condition_value: str):
+    def jump_to_node_by_condition(self, condition_value: Optional[str] = None) -> bool:
         """
         根据传入的条件值，让 current_node_id 跳转到对应的目标节点。
-        如果当前节点没有对应的条件值，则抛出异常。
-        :param condition_value: 条件值，用于选择下一步跳转的节点。
+        对于 'input' 类型节点，跳转到唯一的下一节点；
+        对于 'default' 和 'output' 类型节点，优先跳转条件节点，如果没有条件值则跳转到 parentNode；
+        对于 'group' 类型节点，必须连接到其他 'group' 节点，并且跳转到该 group 的唯一 input 节点。
+
+        :param condition_value: 条件值，用于选择下一步跳转的节点（可选）。
+        :return: bool 表示是否找到并跳转到下一个节点。
         """
         current_node = self.get_current_node()
         if not current_node:
             raise ValueError(f"当前节点 ID {self.current_node_id} 不存在。")
 
-        for edge in current_node.edges:
-            if edge.condition_value == condition_value:
-                self.current_node_id = edge.target_node
-                next_node = self.get_node(self.current_node_id)
-                if next_node:
-                    next_node.is_visited = True
-                print(f"跳转到节点 {self.current_node_id}。")
-                return
+        edges = current_node.edges
 
-        raise ValueError(f"在节点 {current_node.node_id} 中没有找到匹配的条件值: {condition_value}。")
+        # 对于 'input' 类型的节点，必须只有一个跳转边
+        if current_node.node_type == "input":
+            if len(edges) == 1:
+                self.current_node_id = edges[0].target
+                print(f"跳转到节点 {self.current_node_id}（input 节点）。")
+                return True
+            else:
+                raise Exception(f"Input 节点 {current_node.node_id} 必须有且只有一个连接的边")
+
+        # 对于 'default' 和 'output' 类型节点，优先根据条件值跳转
+        elif current_node.node_type in ["default", "output"]:
+            if condition_value:
+                for edge in edges:
+                    if edge.condition_value == condition_value:
+                        self.current_node_id = edge.target_node
+                        print(f"根据条件值跳转到节点 {self.current_node_id}。")
+                        return True
+            # 如果没有符合条件值的边，跳转到 parentNode
+            if current_node.parent_node:
+                self.current_node_id = current_node.parent_node
+                print(f"跳转到 parentNode {self.current_node_id}。")
+                return True
+            else:
+                raise Exception(f"节点 {current_node.node_id} 没有跳转节点且没有父节点")
+
+        # 对于 'group' 类型节点，必须连接到其他 'group' 节点，并且跳转到该 group 的唯一 input 节点
+        elif current_node.node_type == "group":
+            # 首先找到连接的 group 节点
+            for edge in edges:
+                if edge.condition_value == condition_value:
+                    target_group_node = self.get_node(edge.target_node)
+                    if target_group_node and target_group_node.node_type == "group":
+                        # 遍历所有节点，找到 parentNode 是该 group 的 input 节点
+                        input_nodes = [
+                            node for node in self.nodes
+                            if node.parent_node == target_group_node.node_id and node.node_type == "input"
+                        ]
+
+                        # 确保每个 group 节点有且仅有一个 input 节点
+                        if len(input_nodes) == 1:
+                            self.current_node_id = input_nodes[0].node_id
+                            print(f"跳转到 group {target_group_node.node_id} 中的 input 节点 {self.current_node_id}。")
+                            return True
+                        else:
+                            raise Exception(
+                                f"Group 节点 {target_group_node.node_id} 必须有且仅有一个 input 节点，但找到了 {len(input_nodes)} 个")
+                    else:
+                        raise Exception(
+                            f"Group 节点 {current_node.node_id} 的目标节点 {edge.target_node} 不是有效的 group 节点")
+
+            # 如果没有找到符合条件的 group 节点，则终止
+            print(f"节点 {current_node.node_id} 为终止 group 节点，结束循环。")
+            return False
+
+        else:
+            raise Exception(f"未知的节点类型: {current_node.node_type}")
 
     def get_category(self) -> str:
         """

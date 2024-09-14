@@ -87,7 +87,7 @@ class QuestionNodePair:
 
 class NodeMemoryItem:
     """
-    MemoryItem 类用于存储与某个动作（action）相关的观察、问题与节点ID的映射。
+    NodeMemoryItem 类用于存储与某个动作（action）相关的观察、问题与节点ID的映射。
     """
 
     def __init__(self, action: str,
@@ -96,7 +96,7 @@ class NodeMemoryItem:
                  question_node_pair: Optional[QuestionNodePair] = None,
                  timestamp: Optional[datetime] = None):
         """
-        初始化 MemoryItem 对象。
+        初始化 NodeMemoryItem 对象。
 
         Args:
             action (str): 需要存储的动作对象。
@@ -113,7 +113,7 @@ class NodeMemoryItem:
 
     def add_question_node_pair(self, question: str, node_ids: Optional[Union[str, Set[str]]]):
         """
-        向 MemoryItem 中的 question_node_map 添加新的 question 和 node_ids。
+        向 NodeMemoryItem 中的 question_node_map 添加新的 question 和 node_ids。
 
         Args:
             question (str): 问题作为 key。
@@ -186,7 +186,7 @@ class NodeMemoryItem:
 
     def to_dict(self, get_graph_func: Callable) -> Dict[str, Any]:
         """
-        将 MemoryItem 对象转换为字典格式，便于存储和序列化。
+        将 NodeMemoryItem 对象转换为字典格式，便于存储和序列化。
 
         Returns:
             Dict[str, Any]: 包含动作、观察、描述、问题和时间戳的字典。
@@ -201,21 +201,21 @@ class NodeMemoryItem:
         }
 
     @staticmethod
-    def from_dict(item_dict: Dict[str, Any]) -> 'MemoryItem':
+    def from_dict(item_dict: Dict[str, Any]) -> 'NodeMemoryItem':
         """
-        从字典中重建 MemoryItem 对象。
+        从字典中重建 NodeMemoryItem 对象。
 
         Args:
             item_dict (Dict[str, Any]): 存储数据的字典。
 
         Returns:
-            MemoryItem: 生成的 MemoryItem 对象。
+            NodeMemoryItem: 生成的 NodeMemoryItem 对象。
         """
         timestamp = datetime.fromisoformat(item_dict["timestamp"])
         action = item_dict["action"]
         question_node_pair = QuestionNodePair.from_dict(item_dict["question_node_pairs"])
 
-        return MemoryItem(
+        return NodeMemoryItem(
             action=action,
             observation=item_dict["observation"],
             description=item_dict["description"],
@@ -239,14 +239,14 @@ class NodeMemoryItem:
 
 class MemoryItemFactory:
     """
-    MemoryItemFactory 是一个工厂类，用于根据给定的参数构造 MemoryItem 对象。
+    MemoryItemFactory 是一个工厂类，用于根据给定的参数构造 NodeMemoryItem 对象。
     """
 
     @staticmethod
     def create_memory_item(action: str, observation: str, description: str, question: str,
-                           node_ids: Union[str, Set[str]]) -> 'MemoryItem':
+                           node_ids: Union[str, Set[str]]) -> 'NodeMemoryItem':
         """
-        根据传入的参数创建 MemoryItem 对象。
+        根据传入的参数创建 NodeMemoryItem 对象。
 
         Args:
             action (str): 动作名称。
@@ -256,16 +256,34 @@ class MemoryItemFactory:
             node_ids (Union[str, Set[str]]): 与问题关联的节点ID，可以是单个字符串或集合。
 
         Returns:
-            MemoryItem: 创建并返回 MemoryItem 对象。
+            NodeMemoryItem: 创建并返回 NodeMemoryItem 对象。
         """
         # 创建 QuestionNodePair 对象并添加节点ID
         question_node_pair = QuestionNodePair()
         question_node_pair.add_node_ids(question, node_ids)
 
-        # 创建 MemoryItem 对象并添加 question_node_pair
-        memory_item = MemoryItem(
+        # 创建 NodeMemoryItem 对象并添加 question_node_pair
+        memory_item = NodeMemoryItem(
             action=action,
             observation=observation,
+            description=description,
+            question_node_pair=question_node_pair,
+            timestamp=datetime.now()
+
+        )
+
+        return memory_item
+
+    @staticmethod
+    def create_error_memory_item(description: str, node_ids: Union[str, Set[str]]) -> 'NodeMemoryItem':
+        # 创建 QuestionNodePair 对象并添加节点ID
+        question_node_pair = QuestionNodePair()
+        question_node_pair.add_node_ids(description, node_ids)
+
+        # 创建 NodeMemoryItem 对象并添加 question_node_pair
+        memory_item = NodeMemoryItem(
+            action="error",
+            observation="error",
             description=description,
             question_node_pair=question_node_pair,
             timestamp=datetime.now()
