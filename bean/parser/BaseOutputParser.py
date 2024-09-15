@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List, Union
+
 from langchain.tools import BaseTool
 from langchain_core.agents import AgentAction, AgentFinish
 
@@ -8,12 +9,13 @@ class BaseOutputParser(ABC):
     """基类输出解析器，提供解析输出的接口。"""
 
     @abstractmethod
-    def parse(self, text: str) -> Union[AgentAction, AgentFinish]:
+    def parse(self, text: str, patterns: List[str] = None) -> Union[AgentAction, AgentFinish]:
         """
         解析文本以确定是否含有任一工具名称，并进行适当的动作。
 
         参数:
             text (str): 输入文本。
+            patterns (List[str]): 规定输出文本中必须包含数组内容
 
         返回:
             AgentAction 或 AgentFinish: 根据解析结果返回动作或结束信号。

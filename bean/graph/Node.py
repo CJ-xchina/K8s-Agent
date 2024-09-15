@@ -11,7 +11,6 @@ class NodeStatusEnum(Enum):
     EXECUTING = "executing"
     COMPLETED = "completed"
 
-
 class Node:
     def __init__(self, node_id: str, question: str, node_type: str, node_left: int, node_top: int,
                  regex: Optional[str] = "", action: Optional[str] = "", conclusion: Optional[str] = "",
@@ -35,45 +34,51 @@ class Node:
         self.llm_call_count = 0  # 调用LLM总次数，默认为0
         self.conclusion = conclusion
 
+    def __hash__(self):
+        """
+        通过 node_id 生成唯一哈希值。
+        """
+        return hash(self.node_id)
+
+    def __eq__(self, other):
+        """
+        判断节点是否相等，基于 node_id。
+        """
+        if isinstance(other, Node):
+            return self.node_id == other.node_id
+        return False
+
+    # 其他方法保持不变
     def add_edge(self, edge: 'Edge'):
-        """
-        向节点添加边。
-        :param edge: 边对象。
-        """
         self.edges.append(edge)
 
     def get_reachable_nodes(self) -> List[str]:
-        """
-        获取节点可达的目标节点列表。
-        :return: 目标节点ID的列表。
-        """
         return [edge.target_node for edge in self.edges]
 
     def get_node_if_statement(self) -> List[str]:
-        """
-        返回一个包含所有条件值（condition_value）的数组。
-        :return: 条件值的列表。
-        """
         return [edge.condition_value for edge in self.edges if edge.condition_value]
 
     def start_execution(self):
-        """
-        设置节点为执行状态，并记录开始时间。
-        """
         self.status = NodeStatusEnum.EXECUTING
         self.start_time = datetime.now()
 
     def complete_execution(self):
-        """
-        设置节点为完成状态，并记录结束时间。
-        """
         self.status = NodeStatusEnum.COMPLETED
         self.end_time = datetime.now()
 
+    def get_execution_summary(self):
+        return f"""
+        为了解决问题{self.question}, 执行了指令{self.action},该条指令的目的是{self.description},通过观察思考问题的最终结论是:{self.conclusion}
+        \n
+        """
+
+    def get_error_summary(self):
+        return f"""
+        存在问题, 问题出现的故障描述如下:{self.description}
+        \n
+        """
+
     def to_dict(self):
-        """
-        将节点转换为字典，方便序列化，包含所有节点属性（不包括 edges 和 endpoints）
-        """
         return {
             "id": self.node_id,
             "data": {
@@ -94,3 +99,4 @@ class Node:
             },
             "parentNode": self.parent_node
         }
+

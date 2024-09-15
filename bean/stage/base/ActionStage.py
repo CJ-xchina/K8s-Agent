@@ -52,7 +52,8 @@ class ActionStage(BaseStage):
                  fixing_prompt: str = None,
                  fixing_num: int = 3,
                  dynamic_fixing: bool = True,
-                 execute_action: bool = True, ):
+                 execute_action: bool = True,
+                 patterns: List[str] = []):
         """
         初始化 ActionStage 类。
 
@@ -73,6 +74,8 @@ class ActionStage(BaseStage):
         self.tool_parser = tool_parser
         self.chat_model = chat_model if chat_model is not None else self.default_model()
         self.execute_action = execute_action
+        self.patterns = patterns
+
         if enable_fixing:
             self.fixing_model = fixing_model if fixing_model is not None else chat_model
             self.fixing_prompt = fixing_prompt if fixing_prompt is not None else self.default_fixing_prompt()
@@ -102,11 +105,17 @@ class ActionStage(BaseStage):
 
         # 初始化参数字典
         partial_kwargs = {
-            "format_instructions": self.__chinese_friendly(self.tool_parser.get_format_instructions()),  # 处理格式说明
         }
 
-        if "tools" in prompt:
+        if "{{format_instructions}}" in prompt:
+            partial_kwargs["format_instructions"] = self.__chinese_friendly(
+                self.tool_parser.get_format_instructions()),  # 处理格式说明
+
+        if "{{tools}}" in prompt:
             partial_kwargs["tools"] = self.tool_parser.render_text_description_and_args(self.tools)
+
+        if "{{patterns}}" in prompt:
+            partial_kwargs["patterns"] = self.get_patterns()
 
         return PromptTemplate.from_template(prompt, template_format="jinja2").partial(**partial_kwargs)
 
@@ -145,27 +154,6 @@ class ActionStage(BaseStage):
             error=error,
             raw_action=raw_action,
             cur_action=cur_action,
-        )
-
-    def _initialize_conclusion_prompt(self, _prompt: str, observation: str, _question: str) -> PromptTemplate:
-        """
-        将字符串类型的提示转换为 PromptTemplate 对象，用于生成结论。
-
-        参数:
-            observation (str): 需要分析的数据或观察结果的原始字符串。
-            _prompt (str): 原始字符串类型的提示，用于引导生成结论。
-            _question (str): 针对数据提出的需要回答的问题。
-
-        返回:
-            PromptTemplate: 转换后的模板对象。
-
-        抛出:
-            ValueError: 如果传入的 observation、_prompt 或 _question 为空或不是字符串类型。
-        """
-
-        return PromptTemplate.from_template(_prompt, template_format="jinja2").partial(
-            raw_input=observation,
-            question=_question
         )
 
     def select_final_output(self, outputs: list[str]) -> str:
@@ -231,7 +219,7 @@ class ActionStage(BaseStage):
         final_output = super().step(variables)
 
         # 解析生成的响应以确定是否需要调用工具
-        action = self.tool_parser.parse(final_output)
+        action = self.tool_parser.parse(final_output, self.patterns)
 
         observation = ""
         if self.execute_action:
@@ -241,6 +229,11 @@ class ActionStage(BaseStage):
             observation = final_output
 
         return action, observation
+
+    def set_patterns_before_step(self, patterns: list[str], variables: dict[str, str]):
+        self.patterns = patterns
+        return self.step(variables)
+
 
     @staticmethod
     def __chinese_friendly(string: str) -> str:
@@ -313,3 +306,14 @@ class ActionStage(BaseStage):
             repaired_outputs = await asyncio.gather(*tasks)
 
         return repaired_outputs, total_attempt
+
+    def get_patterns(self):
+        # 每次动态调用 pattern_func 来获取最新的 patterns
+        prompt = PromptTemplate(
+            input_variables=["patterns"],
+            template=self.prompt,
+        )
+
+        prompt_str = prompt.format(tools_names=', '.join(self.patterns), )
+
+        return prompt_str

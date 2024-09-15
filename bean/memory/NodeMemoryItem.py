@@ -1,9 +1,13 @@
 import asyncio
+import logging
 from dataclasses import field, dataclass
 from datetime import datetime
-from typing import Any, Dict, Optional, Union, Callable, Set
+from typing import Any, Dict, Optional, Union, Set
 
-from bean.graph.Graph import Graph
+from bean.graph.Node import Node
+from bean.resources.pod import Pod
+from bean.stage.base.BaseStage import BaseStage
+from utils.StageUtils import StageUtils
 from utils.str_utils import process_regex
 from utils.tools import execute_action
 
@@ -11,61 +15,50 @@ from utils.tools import execute_action
 @dataclass
 class QuestionNodePair:
     """
-    QuestionNodePair 现在使用字典结构存储问题与节点ID的映射关系。
-    question 为 key，node_ids 为 set 存储。
+    QuestionNodePair 使用字典结构存储问题与节点的映射关系。
+    question 为 key，nodes 为 set 存储 Node 对象。
     """
-    question_node_map: Dict[str, Set[str]] = field(default_factory=dict)
+    question_node_map: Dict[str, Set[Node]] = field(default_factory=dict)
 
-    def add_node_ids(self, question: str, node_ids: Optional[Union[str, Set[str]]]):
+    def add_nodes(self, question: str, nodes: Optional[Union[Node, Set[Node]]]):
         """
-        向 question_node_map 添加新的节点ID。
-        如果 question 已存在，则将 node_ids 添加到对应的 set 中。
+        向 question_node_map 添加新的 Node 对象。
+        如果 question 已存在，则将 nodes 添加到对应的 set 中。
         如果 question 不存在，则创建一个新的条目。
 
         Args:
             question (str): 问题，作为 key。
-            node_ids (Optional[Union[str, Set[str]]]): 可以是节点ID的字符串或 set。
+            nodes (Optional[Union[Node, Set[Node]]]): 可以是单个 Node 对象或 Node 对象的集合。
         """
-        # 如果 node_ids 是单个字符串，将其转换为 set
-        if isinstance(node_ids, str):
-            node_ids = {node_ids}
-        elif node_ids is None:
-            node_ids = set()
+        if isinstance(nodes, Node):
+            nodes = {nodes}
+        elif nodes is None:
+            nodes = set()
 
-        # 如果 question 已经存在，更新 node_ids 集合
         if question in self.question_node_map:
-            self.question_node_map[question].update(node_ids)
-            print(f"已更新问题 '{question}'，添加的 node_ids: {node_ids}")
+            self.question_node_map[question].update(nodes)
+            logging.debug(f"已更新问题 '{question}'，添加的 nodes: {nodes}")
         else:
-            # 否则创建新的 question -> node_ids 映射
-            self.question_node_map[question] = node_ids
-            print(f"新增问题 '{question}'，以及其对应的 node_ids: {node_ids}")
+            self.question_node_map[question] = nodes
+            logging.debug(f"新增问题 '{question}'，以及其对应的 nodes: {nodes}")
 
-    def to_dict(self, current_graph_obj: Graph) -> dict:
+    def to_dict(self) -> dict:
         """
         将 QuestionNodePair 对象转换为字典格式，便于存储和序列化。
-        对于每个 question，返回 question 作为 key，node_ids 和对应 conclusion 作为值。
-
-        Args:
-            current_graph_obj (Any): 用于获取节点对象并提取 conclusion 的图表对象。
-
-        Returns:
-            dict: 包含 question、node_ids 及其对应 conclusion 的字典。
+        返回 question 作为 key，nodes 和对应 conclusion 作为值。
         """
         question_conclusion_map = {}
-        for question, node_ids in self.question_node_map.items():
+        for question, nodes in self.question_node_map.items():
             question_conclusions = {
                 "question": question,
                 "nodes": []
             }
-            for node_id in node_ids:
-                # 通过 current_graph_obj 获取每个 node_id 对应的节点，并获取其 conclusion
-                node_obj = current_graph_obj.get_node(node_id)
+            for node in nodes:
                 question_conclusions["nodes"].append({
-                    "node_id": node_id,
-                    "conclusion": node_obj.conclusion if node_obj else None
+                    "node_id": node.node_id,
+                    "conclusion": node.conclusion if node else None
                 })
-            question_conclusion_map["conclusions"] = question_conclusions
+            question_conclusion_map[question] = question_conclusions
 
         return question_conclusion_map
 
@@ -75,24 +68,25 @@ class QuestionNodePair:
         从字典中重建 QuestionNodePair 对象。
 
         Args:
-            data (dict): 包含 question 与 node_ids 数据的字典。
+            data (dict): 包含 question 与 node 数据的字典。
 
         Returns:
             QuestionNodePair: 生成的 QuestionNodePair 对象。
         """
-        question_node_map = {question: set(node_ids) for question, node_ids in data.items()}
+        question_node_map = {}
+        for question, node_data in data.items():
+            nodes = {Node(**node_dict) for node_dict in node_data["nodes"]}
+            question_node_map[question] = nodes
         return QuestionNodePair(question_node_map=question_node_map)
-
 
 
 class NodeMemoryItem:
     """
-    NodeMemoryItem 类用于存储与某个动作（action）相关的观察、问题与节点ID的映射。
+    NodeMemoryItem 类用于存储与某个动作（action）相关的观察、问题与节点的映射。
     """
 
     def __init__(self, action: str,
-                 observation: str,
-                 description: str,
+                 pod: Pod,
                  question_node_pair: Optional[QuestionNodePair] = None,
                  timestamp: Optional[datetime] = None):
         """
@@ -100,103 +94,50 @@ class NodeMemoryItem:
 
         Args:
             action (str): 需要存储的动作对象。
-            observation (str): 观察到的内容。
-            description (str): 该条记忆的描述。
-            question_node_pair (QuestionNodePair, optional): 与问题和节点ID映射的对象。
+            pod (Pod): 与节点关联的 Pod 对象。
+            question_node_pair (QuestionNodePair, optional): 与问题和节点映射的对象。
             timestamp (datetime, optional): 上次执行时间。默认使用当前时间。
         """
+        self.pod = pod
         self.action = action
-        self.observation = observation
-        self.description = description
         self.question_node_pair = question_node_pair if question_node_pair else QuestionNodePair()
         self.timestamp = timestamp if timestamp else datetime.now()
 
-    def add_question_node_pair(self, question: str, node_ids: Optional[Union[str, Set[str]]]):
+    def add_question_node_pair(self, question: str, nodes: Optional[Union[Node, Set[Node]]]):
         """
-        向 NodeMemoryItem 中的 question_node_map 添加新的 question 和 node_ids。
+        向 NodeMemoryItem 中的 question_node_map 添加新的 question 和 nodes。
 
         Args:
             question (str): 问题作为 key。
-            node_ids (Optional[Union[str, Set[str]]]): 节点ID，可以是单个字符串或 set。
+            nodes (Optional[Union[Node, Set[Node]]]): 节点对象，可以是单个 Node 或 set。
         """
-        self.question_node_pair.add_node_ids(question, node_ids)
+        self.question_node_pair.add_nodes(question, nodes)
 
-    async def run_action_and_update(self, get_graph_func: Callable, llm_extract_func: Callable):
+    async def run_action_and_update(self, extract_stage: BaseStage, max_concurrency: int = 5):
         """
-        异步执行动作，使用 asyncio.gather 并行更新所有 Question 的 Conclusion。
-        如果正则表达式为空，则调用 LLM 提取关键信息。
+        异步执行动作，提取结论并更新节点，使用 StageUtils 工具类来进行并发控制和提取处理。
 
         Args:
-            llm_extract_func (callable, optional): 提供的 LLM 提取关键信息的异步函数。
-            get_graph_func (callable): 获取最新图表信息的函数。
+            extract_stage (BaseStage): 提取逻辑的执行阶段。
+            max_concurrency (int): 最大并发任务数量。
         """
-        # 执行动作，获取结果
-        result = execute_action(self.action)
-        self.observation = result
+        try:
+            # 使用 StageUtils 工具类执行动作并处理结论
+            await StageUtils.run_action_and_set_conclusion(self.question_node_pair, extract_stage, max_concurrency, self.pod)
+            self.timestamp = datetime.now()  # 更新执行时间戳
+        except Exception as e:
+            print(f"执行动作 '{self.action}' 时发生错误: {e}")
 
-        # 获取当前最新图表信息
-        current_graph_obj = get_graph_func
-
-        # 创建并发任务列表
-        tasks = []
-
-        # 遍历 question 和对应的 node_ids
-        for question, node_ids in self.question_node_pair.question_node_map.items():
-            # 对每个 question，处理其 node_ids
-            tasks.append(
-                self._process_question_node_ids(result, question, node_ids, current_graph_obj, llm_extract_func))
-
-        # 并发执行所有任务
-        await asyncio.gather(*tasks)
-
-        # 更新最后执行时间
-        self.timestamp = datetime.now()
-
-    async def _process_question_node_ids(self, result: str, question: str, node_ids: Set[str], current_graph_obj: Any,
-                                         llm_extract_func: Callable):
-        """
-        处理单个 Question 及其所有 Node IDs，获取结论并更新对应的 Node 对象。
-
-        Args:
-            result (str): 执行动作的结果。
-            question (str): 问题字符串。
-            node_ids (Set[str]): 与问题关联的节点ID集合。
-            current_graph_obj (Any): 图表对象，用于获取节点。
-            llm_extract_func (Callable): 提供的 LLM 提取关键信息的异步函数。
-        """
-        # 获取 node_ids 集合中的第一个节点来处理
-        first_node_id = next(iter(node_ids))
-        first_node_obj = current_graph_obj.get_node(first_node_id)
-
-        # 处理正则或 LLM 提取
-        if first_node_obj.regex:
-            # 使用正则表达式进行匹配
-            conclusion = await process_regex(result, first_node_obj.regex)
-        else:
-            # 如果没有正则表达式，调用 LLM 提取关键信息
-            if llm_extract_func:
-                conclusion = await llm_extract_func(result, question)
-            else:
-                conclusion = await self.handle_no_llm_func(question)
-
-        # 将结论应用到所有相同问题的节点
-        for node_id in node_ids:
-            node_obj = current_graph_obj.get_node(node_id)
-            node_obj.conclusion = conclusion
-
-    def to_dict(self, get_graph_func: Callable) -> Dict[str, Any]:
+    def to_dict(self) -> Dict[str, Any]:
         """
         将 NodeMemoryItem 对象转换为字典格式，便于存储和序列化。
 
         Returns:
-            Dict[str, Any]: 包含动作、观察、描述、问题和时间戳的字典。
+            Dict[str, Any]: 包含动作、问题和时间戳的字典。
         """
-        graph_obj = get_graph_func
         return {
             "action": self.action,
-            "observation": self.observation,
-            "description": self.description,
-            "question_node_pairs": self.question_node_pair.to_dict(graph_obj),
+            "question_node_pairs": self.question_node_pair.to_dict(),
             "timestamp": self.timestamp.isoformat(),
         }
 
@@ -217,25 +158,14 @@ class NodeMemoryItem:
 
         return NodeMemoryItem(
             action=action,
-            observation=item_dict["observation"],
-            description=item_dict["description"],
+            pod=None,  # 需要传入实际的 Pod 对象
             question_node_pair=question_node_pair,
             timestamp=timestamp
         )
 
 
-    async def handle_no_llm_func(self, question: str) -> str:
-        """
-        处理没有提供 LLM 提取函数的情况，返回提示信息。
-
-        Args:
-            question (str): 未提供 LLM 提取函数时的问题。
-
-        Returns:
-            str: 处理后的提示信息。
-        """
-        return f"LLM 提取所需的函数未提供，问题: {question}"
-
+from datetime import datetime
+from typing import Union, Set
 
 class MemoryItemFactory:
     """
@@ -243,51 +173,68 @@ class MemoryItemFactory:
     """
 
     @staticmethod
-    def create_memory_item(action: str, observation: str, description: str, question: str,
-                           node_ids: Union[str, Set[str]]) -> 'NodeMemoryItem':
+    def create_memory_item(action: str, pod: Pod, question: str, nodes: Union[Node, Set[Node]]) -> 'NodeMemoryItem':
         """
         根据传入的参数创建 NodeMemoryItem 对象。
 
         Args:
             action (str): 动作名称。
-            observation (str): 观察内容。
-            description (str): 描述信息。
+            pod (Pod): 与该动作相关联的 Pod 对象。
             question (str): 相关的问题。
-            node_ids (Union[str, Set[str]]): 与问题关联的节点ID，可以是单个字符串或集合。
+            nodes (Union[Node, Set[Node]]): 与问题关联的 Node 对象，可以是单个对象或集合。
 
         Returns:
             NodeMemoryItem: 创建并返回 NodeMemoryItem 对象。
         """
-        # 创建 QuestionNodePair 对象并添加节点ID
-        question_node_pair = QuestionNodePair()
-        question_node_pair.add_node_ids(question, node_ids)
+        # 确保 nodes 为 Set 类型
+        if isinstance(nodes, Node):
+            nodes = {nodes}
+        elif not isinstance(nodes, set):
+            raise TypeError("nodes 必须是 Node 类型的对象或 Node 的集合")
 
-        # 创建 NodeMemoryItem 对象并添加 question_node_pair
+        # 创建 QuestionNodePair 对象并添加 Node 对象
+        question_node_pair = QuestionNodePair()
+        question_node_pair.add_nodes(question, nodes)
+
+        # 创建并返回 NodeMemoryItem 对象
         memory_item = NodeMemoryItem(
             action=action,
-            observation=observation,
-            description=description,
+            pod=pod,
             question_node_pair=question_node_pair,
             timestamp=datetime.now()
-
         )
 
         return memory_item
 
     @staticmethod
-    def create_error_memory_item(description: str, node_ids: Union[str, Set[str]]) -> 'NodeMemoryItem':
-        # 创建 QuestionNodePair 对象并添加节点ID
-        question_node_pair = QuestionNodePair()
-        question_node_pair.add_node_ids(description, node_ids)
+    def create_error_memory_item(description: str, pod: Pod, nodes: Union[Node, Set[Node]]) -> 'NodeMemoryItem':
+        """
+        创建一个表示错误的 NodeMemoryItem 对象。
 
-        # 创建 NodeMemoryItem 对象并添加 question_node_pair
+        Args:
+            description (str): 错误描述。
+            pod (Pod): 与错误相关联的 Pod 对象。
+            nodes (Union[Node, Set[Node]]): 关联的 Node 对象。
+
+        Returns:
+            NodeMemoryItem: 表示错误的 NodeMemoryItem 对象。
+        """
+        # 确保 nodes 为 Set 类型
+        if isinstance(nodes, Node):
+            nodes = {nodes}
+        elif not isinstance(nodes, set):
+            raise TypeError("nodes 必须是 Node 类型的对象或 Node 的集合")
+
+        # 创建 QuestionNodePair 对象并添加 Node 对象
+        question_node_pair = QuestionNodePair()
+        question_node_pair.add_nodes(description, nodes)
+
+        # 创建并返回 NodeMemoryItem 对象，动作设置为 "error"
         memory_item = NodeMemoryItem(
             action="error",
-            observation="error",
-            description=description,
+            pod=pod,
             question_node_pair=question_node_pair,
             timestamp=datetime.now()
-
         )
 
         return memory_item

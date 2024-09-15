@@ -1,12 +1,9 @@
-import json
-
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO
 
-from bean.graph.GraphManager import GraphManager
+from bean.graph.TaskManager import TaskManager
 from bean.resources.pod import Pod
-from executor import PodAgent
 from utils.Kubernetes_api import kubectl_get_details
 
 app = Flask(__name__)
@@ -340,13 +337,7 @@ def analyze_pod():
             return jsonify({'error': 'JSON data failed the checks'}), 400
 
         # 检查通过后，使用 json_list 来创建 GraphManager
-        graph_manager = GraphManager.from_data(json_list)
-
-        # 构建 PodAgent 并执行
-        for graph in graph_manager.graphs.values():
-            # 将每个图转换为 JSON 字符串并执行 PodAgent
-            agent = PodAgent(json_str=json.dumps(graph.to_json()), pod=pod)
-            agent.execute()
+        graph_manager = TaskManager.from_data(json_list, pod, 2)
 
         # 返回接受请求的响应，检查进度通过 WebSocket 返回
         return jsonify({'message': 'Pod analysis started, progress will be updated via WebSocket'}), 200

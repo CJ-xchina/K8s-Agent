@@ -33,8 +33,7 @@ class BaseStage:
             raise ValueError("self_consistency_times 必须大于0")
 
         self.prompt = prompt
-        self.prompt_template = self._initialize_prompt(prompt)
-        self.prompt = self._initialize_prompt(prompt)
+        self.prompt_template = None
         self.chat_model = chat_model
         self.self_consistency_times = self_consistency_times
 
@@ -118,6 +117,7 @@ class BaseStage:
         if variables is None:
             variables = {}
 
+        self.prompt_template = self._initialize_prompt(self.prompt_template)
 
         # 生成初步的 self_consistency 数组
         outputs = asyncio.run(self._step_with_sct(variables))
@@ -129,6 +129,9 @@ class BaseStage:
         final_output = self.select_final_output(outputs)
 
         return final_output
+
+    def set_patterns_before_step(self, patterns: list[str], variables: dict[str, str]):
+        pass
 
     def select_final_output(self, outputs: list[str]) -> str:
         """

@@ -4,7 +4,7 @@ import json
 import logging
 import re
 from inspect import signature
-from typing import  Union, List
+from typing import Union, List
 from langchain_core.agents import AgentAction, AgentFinish
 from langchain_core.exceptions import OutputParserException
 from bean.parser.BaseOutputParser import BaseOutputParser
@@ -31,7 +31,7 @@ class StructuredChatOutputParser(BaseOutputParser):
         """Returns formatting instructions for the given output parser."""
         return self.format_instructions
 
-    def parse(self, text: str) -> Union[AgentAction, AgentFinish]:
+    def parse(self, text: str, patterns=None) -> Union[AgentAction, AgentFinish]:
         # Check if the response dictionary has exactly the required two keys
         required_keys = {self.tool_name, self.tool_vars}
 
@@ -57,7 +57,6 @@ class StructuredChatOutputParser(BaseOutputParser):
             return AgentAction(
                 response["action"], response.get("action_input", {}), text
             )
-
 
     def render_text_description_and_args(self, tools: List[BaseTool]) -> str:
         """

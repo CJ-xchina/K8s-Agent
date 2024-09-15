@@ -21,6 +21,9 @@ class Graph:
         # 节点执行顺序, 用于回退
         self.work_flow = []
 
+        # 执行后得到的结论
+        self.conclusion = ""
+
     def add_node(self, node: Node):
         """
         将节点添加到图中。
@@ -190,8 +193,9 @@ class Graph:
         if current_node.node_type == "input":
             if len(edges) == 1:
                 self.current_node_id = edges[0].target
-                print(f"跳转到节点 {self.current_node_id}（input 节点）。")
-                return True
+                current_node = self.get_current_node()
+                if current_node.node_type == "group":
+                    return self.find_group_input()
             else:
                 raise Exception(f"Input 节点 {current_node.node_id} 必须有且只有一个连接的边")
 
@@ -218,20 +222,7 @@ class Graph:
                 if edge.condition_value == condition_value:
                     target_group_node = self.get_node(edge.target_node)
                     if target_group_node and target_group_node.node_type == "group":
-                        # 遍历所有节点，找到 parentNode 是该 group 的 input 节点
-                        input_nodes = [
-                            node for node in self.nodes
-                            if node.parent_node == target_group_node.node_id and node.node_type == "input"
-                        ]
-
-                        # 确保每个 group 节点有且仅有一个 input 节点
-                        if len(input_nodes) == 1:
-                            self.current_node_id = input_nodes[0].node_id
-                            print(f"跳转到 group {target_group_node.node_id} 中的 input 节点 {self.current_node_id}。")
-                            return True
-                        else:
-                            raise Exception(
-                                f"Group 节点 {target_group_node.node_id} 必须有且仅有一个 input 节点，但找到了 {len(input_nodes)} 个")
+                        return self.find_group_input()
                     else:
                         raise Exception(
                             f"Group 节点 {current_node.node_id} 的目标节点 {edge.target_node} 不是有效的 group 节点")
@@ -242,6 +233,21 @@ class Graph:
 
         else:
             raise Exception(f"未知的节点类型: {current_node.node_type}")
+
+    def find_group_input(self):
+        current_node = self.get_current_node()
+        input_nodes = [
+            node for node in self.nodes
+            if node.parent_node == current_node.node_id and node.node_type == "input"
+        ]
+        # 确保每个 group 节点有且仅有一个 input 节点
+        if len(input_nodes) == 1:
+            self.current_node_id = input_nodes[0].node_id
+            print(f"跳转到 group {current_node.node_id} 中的 input 节点 {self.current_node_id}。")
+            return True
+        else:
+            raise Exception(
+                f"Group 节点 {current_node.node_id} 必须有且仅有一个 input 节点，但找到了 {len(input_nodes)} 个")
 
     def get_category(self) -> str:
         """
