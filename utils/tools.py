@@ -40,7 +40,7 @@ def extract_tool_signature(output: str, tool_parser: AgentOutputParser):
     return output
 
 
-def execute_action(action: Union[str, AgentAction], tools: List[BaseTool] = None, pod: Pod = None) -> str:
+def execute_action(action: Union[str, AgentAction], tools: List[BaseTool] = None) -> str:
     """
     根据解析出的动作执行相应的工具。如果没有匹配的工具, 默认执行Kubectl命令行工具
 
@@ -56,8 +56,6 @@ def execute_action(action: Union[str, AgentAction], tools: List[BaseTool] = None
 
     # 如果action为字符串, 默认调用`kubectl_command` 执行这条kubectl指令
     if isinstance(action, str):
-        action = action.replace("<pod-name>", pod.name)
-        action = action.replace("<pod-namespace>", pod.namespace)
         action = AgentAction(tool="kubectl_command", tool_input=action, log="")
     observation = ""  # 用于存储工具执行后的观察结果
 

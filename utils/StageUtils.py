@@ -4,7 +4,6 @@ from typing import Set
 
 from bean.graph.Node import Node
 from bean.memory.NodeMemoryItem import QuestionNodePair
-from bean.resources.pod import Pod
 from bean.stage.base.BaseStage import BaseStage
 from utils.str_utils import process_regex
 from utils.tools import execute_action
@@ -16,8 +15,7 @@ class StageUtils:
     """
 
     @staticmethod
-    async def run_action_and_set_conclusion(pair: QuestionNodePair, extract_stage: BaseStage, pod: Pod,
-                                            max_concurrency: int = 5):
+    async def run_action_and_set_conclusion(pair: QuestionNodePair, extract_stage: BaseStage, max_concurrency: int = 5):
         """
         统一处理动作的执行和提取结论，支持并发控制。
 
